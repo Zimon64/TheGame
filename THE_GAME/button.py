@@ -12,7 +12,7 @@ class Button():
         self.buttonText = buttonText
         self.onclickFunction = onlickFunction
         self.onePress = onePress
-        self.alreadyPressed = False
+        self.visible = True
 
         self.fillColors = {
             'normal': GREEN,
@@ -26,30 +26,34 @@ class Button():
 
         button_objects.append(self)
 
-    def process(self, screen):
+    def draw(self, screen):
+        """Reines Zeichnen des Buttons - KEINE Klick-Logik hier!"""
+        if not self.visible:
+            return
+
         mousePos = pygame.mouse.get_pos()
-        if self.buttonText == 'GAME OVER':
-            self.buttonSurface.fill(self.fillColors['game_over'])
+        if self.buttonRect.collidepoint(mousePos):
+            self.buttonSurface.fill(self.fillColors['hover'])
         else:
             self.buttonSurface.fill(self.fillColors['normal'])
 
         current_text = self.buttonText() if callable(self.buttonText) else self.buttonText
         text_surf = FONT.render(str(current_text), True, (20, 20, 20))
 
-        if self.buttonRect.collidepoint(mousePos) and self.onePress:
-            self.buttonSurface.fill(self.fillColors['hover'])
-            if pygame.mouse.get_pressed(num_buttons=3)[0]:
-                self.buttonSurface.fill(self.fillColors['pressed'])
-                if self.onePress:
-                    self.onclickFunction()
-                elif not self.alreadyPressed:
-                    self.onclickFunction()
-                    self.alreadyPressed = True
-            else:
-                self.alreadyPressed = False
-
         self.buttonSurface.blit(text_surf, [
             self.buttonRect.width/2 - text_surf.get_rect().width/2,
             self.buttonRect.height/2 - text_surf.get_rect().height/2
         ])
         screen.blit(self.buttonSurface, self.buttonRect)
+
+    def check_event(self, event):
+        """Wird NUR bei einem echten MOUSEBUTTONDOWN Event aufgerufen"""
+        if not self.visible:
+            return False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.buttonRect.collidepoint(event.pos):
+                if callable(self.onclickFunction):
+                    self.onclickFunction()
+                    return True
+        return False

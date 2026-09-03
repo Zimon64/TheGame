@@ -7,6 +7,7 @@ from card import Card
 from button import Button, button_objects
 from score_manager import ScoreManager
 from gpu import GPU
+from online import Online
 
 class Game:
     def __init__(self):
@@ -20,11 +21,16 @@ class Game:
         self.selected_card = None
         self.new_game = False
         self.selected_mode = None
-
         self.with_pc = False
+        self.sub_menu = False
+        self.menu_state = 'main_menu'
+
         self.current_turn = 'player1'
-        self.gpu = GPU(self)
         self.pc_timer = 0
+
+        self.gpu = GPU(self)
+        self.online = Online(self)
+        self.score_manager = ScoreManager()
 
         self.get_buttons()
 
@@ -38,25 +44,23 @@ class Game:
         self.pile_cards_1_right: pygame.sprite.Group = pygame.sprite.Group()
         self.player_2_hand_cards = pygame.sprite.Group()
         self.player_2_hand_cards_back = pygame.sprite.Group()
-        self.reset_game()
+        # self.reset_game()
 
-        self.ask_mode()
-
+        self.new_game_mode()
 
         self.pile_cards_100_left.name = 'pile_cards_100_left'
         self.pile_cards_100_right.name = 'pile_cards_100_right'
         self.pile_cards_1_left.name = 'pile_cards_1_left'
         self.pile_cards_1_right.name = 'pile_cards_1_right'
 
-        self.score_manager = ScoreManager()
         self.score_saved = False
 
     def reset_button(self):
         self.reset_game()
-        self.ask_mode()
+        self.new_game_mode()
 
     def get_buttons(self):
-        # Button(30, 30, 400, 100, 'Button One (onePress)', self.my_function)
+        # table
         Button(
             0, 0, 200, 50,
             'New Game',
@@ -83,18 +87,39 @@ class Game:
             '1 pile'
         )
 
+        # main menu
         Button(
             500, 250, 200, 50,
-            buttonText= 'online',
-            onlickFunction=self.start_online,
-            onePress=True
+            'online',
+            self.open_online_menu,
+            True
         )
 
         Button(
-            500, 500, 200, 50,
-            buttonText= 'play with PC',
-            onlickFunction=self.start_with_pc,
-            onePress=True
+            450, 500, 300, 50,
+            'play with PC',
+            self.start_with_pc,
+            True
+        )
+
+        # under menu - online buttons
+        Button(
+            450, 250, 300, 50,
+            'Host Game',
+            self.start_host_game,
+            True
+        )
+        Button(
+            450, 375, 300, 50,
+            'Join Game',
+            self.start_join_game,
+            True
+        )
+        Button(
+            450, 500, 300, 50,
+            'Back',
+            self.back_to_main_menu,
+            True
         )
 
         self.game_over = False
@@ -102,17 +127,69 @@ class Game:
     def get_remaining_cards(self):
         return len(self.remaining_cards)
 
-    def start_online(self):
+    def back_to_main_menu(self):
+        self.menu_state = 'main_menu'
+        self.selected_mode = None
+        self.sub_menu = False
+        self.new_game = True
+
+    def open_online_menu(self):
+        self.menu_state = 'online_menu'
+        self.sub_menu = True
+
+    def start_host_game(self):
+        self.reset_game()
+
         self.selected_mode = 'online'
+        self.menu_state = 'in_game'
+
         self.new_game = False
 
+        print(f'Starting new game as HOST...')
+        self.online.start_host()
+
+    def start_join_game(self):
+        self.selected_mode = 'online'
+
+        self.new_game = False
+        self.sub_menu = False
+
+        print(f'Connecting with HOST...')
+        self.online._connect_to_host("127.0.0.1")
+
+    def handle_network_action(self, packet):
+        action = packet.get('action')
+        data = packet.get('data')
+
+        if action == 'MOVE_CARD':
+            card_val = data['card_val']
+            pile_name = data['target_pile']
+            print(f'Network received: {data}')
+
+            target_group = None
+            for pile in self.pile_sets:
+                if pile.name == pile_name:
+                    target_group = pile
+                    break
+
+            if target_group and len(target_group) > 0:
+                top_pile_card = target_group.sprites()[0]
+
+                for card in list(self.player_2_hand_cards):
+                    if card.value == card_val:
+                        self.selected_card = card
+                        self.move_card(top_pile_card, target_group)
+                        break
+
+
     def start_with_pc(self):
+        self.reset_game()
         self.selected_mode = 'with_pc'
         self.new_game = False
         self.with_pc = True
         self.current_turn = 'player1'
 
-    def ask_mode(self):
+    def new_game_mode(self):
         self.new_game = True
 
     def reset_game(self):
@@ -266,50 +343,55 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == MOUSEBUTTONDOWN and not self.new_game:
+
+            elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    mouse_pos = event.pos
-                    print('left click')
+                    # 1. Menü-Buttons prüfen
+                    button_clicked = False
+                    for button in button_objects:
+                        if button.visible and button.check_event(event):
+                            button_clicked = True
+                            break
 
-                    # select card
-                    card_clicked = False
-                    self.check_selection(mouse_pos)
+                    # 2. Wenn kein Button geklickt wurde, Karten-Logik ausführen
+                    if not button_clicked and not (self.new_game or self.sub_menu):
+                        mouse_pos = event.pos
+                        card_clicked = False
+                        self.check_selection(mouse_pos)
 
-                    # draw cards from the deck until hand is full
-                    if len(self.cards_in_hand) < 4:
-                        for card in self.deck_cards:
-                            if card.rect.collidepoint(mouse_pos) and (len(self.empty_hand_slot) > 0):
-                                print('drew cards...')
+                        if len(self.cards_in_hand) < 4:
+                            for card in self.deck_cards:
+                                if card.rect.collidepoint(mouse_pos) and (len(self.empty_hand_slot) > 0):
+                                    print('drew cards...')
+                                    for x in range(len(self.empty_hand_slot)):
+                                        pos_x = self.empty_hand_slot[x]
+                                        self.card_generator(
+                                            self.cards_in_hand,
+                                            pos_x,
+                                            self.random_card_generator(),
+                                            600,
+                                        )
 
-                                for x in range(len(self.empty_hand_slot)):
-                                    pos_x = self.empty_hand_slot[x]
-                                    self.card_generator(
-                                        self.cards_in_hand,
-                                        pos_x,
-                                        self.random_card_generator(),
-                                        600,
-                                    )
+                                    self.hand_cards.add(self.cards_in_hand)
+                                    self.all_cards.add(self.cards_in_hand)
+                                    self.empty_hand_slot.clear()
 
-                                self.hand_cards.add(self.cards_in_hand)
-                                self.all_cards.add(self.cards_in_hand)
-                                self.empty_hand_slot.clear()
+                                    if self.with_pc:
+                                        self.current_turn = 'pc'
+                                        self.pc_timer = pygame.time.get_ticks()
 
-                                if self.with_pc:
-                                    self.current_turn = 'pc'
-                                    self.pc_timer = pygame.time.get_ticks()
+                        if not card_clicked and self.selected_card:
+                            for card in self.pile_cards_100_left:
+                                self.stapels_logic(card, self.pile_cards_100_left, mouse_pos)
 
-                    if not card_clicked and self.selected_card:
-                        for card in self.pile_cards_100_left:
-                            self.stapels_logic(card, self.pile_cards_100_left, mouse_pos)
+                            for card in self.pile_cards_100_right:
+                                self.stapels_logic(card, self.pile_cards_100_right, mouse_pos)
 
-                        for card in self.pile_cards_100_right:
-                            self.stapels_logic(card, self.pile_cards_100_right, mouse_pos)
+                            for card in self.pile_cards_1_left:
+                                self.stapels_logic(card, self.pile_cards_1_left, mouse_pos)
 
-                        for card in self.pile_cards_1_left:
-                            self.stapels_logic(card, self.pile_cards_1_left, mouse_pos)
-
-                        for card in self.pile_cards_1_right:
-                            self.stapels_logic(card, self.pile_cards_1_right, mouse_pos=mouse_pos)
+                            for card in self.pile_cards_1_right:
+                                self.stapels_logic(card, self.pile_cards_1_right, mouse_pos=mouse_pos)
 
     def stapels_logic(self, card, pile_card, mouse_pos):
         if card.rect.collidepoint(mouse_pos):
@@ -418,7 +500,7 @@ class Game:
         if not self.selected_card:
             return
 
-        # 1. Aus der Hand-Logik entfernen
+        # delete from hand
         if self.current_turn == 'player1' or not self.with_pc:
             hand_list = self.cards_in_hand
             hand_group = self.hand_cards
@@ -431,15 +513,25 @@ class Game:
             if self.current_turn == 'player1':
                 self.empty_hand_slot.append(self.selected_card.x)
 
-        # Aus der Hand-Gruppe entfernen, damit man sie nicht doppelt anklicken kann
+        # save card value for network thingy, before selections is reset
+        played_value = self.selected_card.value
+
+        # delete from hand group - no double selection possible
         hand_group.remove(self.selected_card)
         self.selected_card.deselect()
 
-        # 2. Zielreferenzen setzen & Flug starten
+        # set final coordinates & start animation
         self.selected_card.target_pile_card = target_pile_card
         self.selected_card.move_to(target_pile_card.rect.x, target_pile_card.rect.y)
 
-        # Reset selection
+        # if online: move send to other player
+        if self.selected_mode == 'online':
+            self.online.send_action('MOVED_CARD', {
+                'card_value': played_value,
+                'target_pile': target_group.name
+            })
+
+        # reset selection
         self.selected_card = None
 
     def game_over_screen(self):
@@ -464,29 +556,37 @@ class Game:
         self.screen.blit(overlay, (0, 0))
 
     def mode_select_screen(self):
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((50, 50, 50, 200))
-        self.screen.blit(overlay, (0, 0))
+        if self.menu_state == 'main_menu':
+            self.screen.fill(GREEN)
 
-        for button in button_objects:
-            if button.buttonText in ['online', 'play with PC']:
-                button.process(screen=self.screen)
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((50, 50, 50, 200))
+            self.screen.blit(overlay, (0, 0))
+
+            for button in button_objects:
+                button.visible = button.buttonText in ['online', 'play with PC']
+                button.draw(self.screen)
+
+        elif self.menu_state == 'online_menu':
+            self.screen.fill(GREEN)
+
+            for button in button_objects:
+                button.visible = button.buttonText in ['Host Game', 'Join Game', 'Back']
+                button.draw(self.screen)
 
     def draw(self):
-        self.screen.fill(GREEN)
+        if self.new_game or self.sub_menu:
+            self.mode_select_screen()
+        else:
+            self.screen.fill(GREEN)
+            self.all_cards.draw(self.screen)
 
-        # Alle Karten auf den Bildschirm zeichnen
-        self.all_cards.draw(self.screen)
-
-        for button in button_objects:
-            if button.buttonText not in ['online', 'play with PC']:
-                button.process(screen=self.screen)
+            for button in button_objects:
+                button.visible = button.buttonText not in ['online', 'play with PC', 'Host Game', 'Join Game', 'Back']
+                button.draw(self.screen)
 
         if self.game_over:
             self.game_over_screen()
-
-        if self.new_game:
-            self.mode_select_screen()
 
         pygame.display.flip()
 
