@@ -1,7 +1,5 @@
 name: Build Executables for All OS
 
-
-
 on:
   push:
     tags:
