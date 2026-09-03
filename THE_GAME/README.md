@@ -1,4 +1,5 @@
-# Structure
+# THE GAME
+## Structure
 ```text
 GameIdeas/
 ├── .github/
@@ -16,3 +17,5 @@ GameIdeas/
 ├── gpu.py                   # GPU / bot-logic
 └── game.py                  # Game class (main-game-loop & state)
 ```
+## Playing Rules
+
