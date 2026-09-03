@@ -32,12 +32,12 @@ jobs:
     - name: Build Executable (Linux / macOS)
       if: runner.os != 'Windows'
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards:THE_GAME/cards" THE_GAME/main.py
+        pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards:cards" THE_GAME/main.py
 
     - name: Build Executable (Windows)
       if: runner.os == 'Windows'
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards;THE_GAME/cards" THE_GAME/main.py
+        pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards;cards" THE_GAME/main.py
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
