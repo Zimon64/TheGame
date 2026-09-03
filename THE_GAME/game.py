@@ -1,3 +1,4 @@
+import os
 import random
 import pygame
 from pygame.constants import MOUSEBUTTONDOWN
@@ -8,6 +9,7 @@ from button import Button, button_objects
 from score_manager import ScoreManager
 from gpu import GPU
 from online import Online
+from settings import CARDS_DIR
 
 class Game:
     def __init__(self):
@@ -15,6 +17,10 @@ class Game:
 
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("THE GAME")
+
+        icon = pygame.image.load(os.path.join(CARDS_DIR, "back.png"))  # oder z. B. ein Kartenbild
+        pygame.display.set_icon(icon)
+
         self.clock = pygame.time.Clock()
         self.running = True
 
