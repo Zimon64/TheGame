@@ -4,7 +4,7 @@ from settings import GREEN, BRIGHT_GREEN, GRAY, FONT
 button_objects = []
 
 class Button():
-    def __init__(self, x, y, width, height, buttonText='button pressed', onlickFunction=None, onePress=False):
+    def __init__(self, x, y, width, height, buttonText='button pressed', onlickFunction=None, onePress=False, static_color=False):
         self.x = float(x)
         self.y = float(y)
         self.width = float(width)
@@ -13,6 +13,7 @@ class Button():
         self.onclickFunction = onlickFunction
         self.onePress = onePress
         self.visible = True
+        self.static_color = static_color
 
         self.fillColors = {
             'normal': GREEN,
@@ -32,10 +33,11 @@ class Button():
             return
 
         mousePos = pygame.mouse.get_pos()
-        if self.buttonRect.collidepoint(mousePos):
-            self.buttonSurface.fill(self.fillColors['hover'])
-        else:
-            self.buttonSurface.fill(self.fillColors['normal'])
+        self.buttonSurface.fill(self.fillColors['normal'])
+
+        if not self.static_color:
+            if self.buttonRect.collidepoint(mousePos):
+                self.buttonSurface.fill(self.fillColors['hover'])
 
         current_text = self.buttonText() if callable(self.buttonText) else self.buttonText
         text_surf = FONT.render(str(current_text), True, (20, 20, 20))

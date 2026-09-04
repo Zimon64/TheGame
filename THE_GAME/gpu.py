@@ -1,5 +1,6 @@
 import numpy as np
-from settings import MAX_CARDS_IN_HAND
+
+from settings import MAX_CARDS_IN_HAND, FIRST_HAND_POS_X, HAND_UPPER_PLAYER_POS_Y, CARD_WIDTH
 
 class GPU:
     def __init__(self, game):
@@ -8,6 +9,7 @@ class GPU:
 
     def simple_move(self):
         pc_cards = self.game.player_2_hand_cards
+        print(len(pc_cards))
 
         if not self.opt_moves_calc:
             self.planed_moves = self.automated_smartest_move_light(pc_cards, self.game.piles.get_all_piles())
@@ -22,8 +24,6 @@ class GPU:
 
             self.execute_move(card, top_card, pile)
             return True
-
-        # self.move_remaining_cards()
 
         return False
 
@@ -89,18 +89,20 @@ class GPU:
         for m in final_two_moves:
             print(f"-> Karte Index {m['card_idx']} auf Stapel {m['pile_idx']} (Abstand: {m['abs_dist']})")
 
-        self.opt_moves_clac = True
+        self.opt_moves_calc = True
 
         return final_two_moves
 
     def execute_move(self, card_to_play, target_pile_card, target_group):
         self.game.selected_card = card_to_play
-        self.game.move_card(target_pile_card, target_group)
+        self.game.move_card_to_pile(target_pile_card, target_group)
 
-    def move_remaining_cards(self, card_to_play, target_group):
-        remaining_hand_pos = MAX_CARDS_IN_HAND - 2
+        # self.move_remaining_cards(self.game.player_2_hand_cards)
 
+    def move_remaining_cards(self, cards_to_sort, y_pos=HAND_UPPER_PLAYER_POS_Y):
+        x_pos = FIRST_HAND_POS_X
 
-
-        self.game.selected_card = card_to_play
-        self.game.move_card(target_pile_card, target_group)
+        for card in cards_to_sort:
+            card.x = x_pos
+            card.move_to(x_pos, y_pos)
+            x_pos += CARD_WIDTH

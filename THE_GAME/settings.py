@@ -18,10 +18,15 @@ CARD_HEIGHT = 200
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARDS_DIR = os.path.join(BASE_DIR, 'cards')
 MAX_CARDS_IN_HAND = 6
+MAX_CARDS_IN_HAND_FOR_REFILL_EASY = MAX_CARDS_IN_HAND - 2
 FIRST_HAND_POS_X = 300
+HAND_UPPER_PLAYER_POS_Y = -100
 
 remaining_cards = sorted(list(range(2, 100)))
 
 # fonts
 pygame.font.init()
 FONT =  pygame.font.SysFont('Cambria', 40)
+
+# bot
+BOT_TIMER = 600

@@ -2,7 +2,12 @@ import random
 import pygame
 from pygame.constants import MOUSEBUTTONDOWN
 
-from settings import WIDTH, HEIGHT, GREEN, RED, WHITE, FONT, FIRST_HAND_POS_X, MAX_CARDS_IN_HAND
+from settings import (
+    WIDTH, HEIGHT, GREEN, RED, WHITE,
+    FONT,
+    FIRST_HAND_POS_X, MAX_CARDS_IN_HAND, MAX_CARDS_IN_HAND_FOR_REFILL_EASY, HAND_UPPER_PLAYER_POS_Y,
+    BOT_TIMER
+)
 from card import Card
 from button import Button, button_objects
 from score_manager import ScoreManager
@@ -64,22 +69,23 @@ class Game:
         Button(
             500, 250, 200, 50,
             buttonText= lambda: f'DECK: {self.get_remaining_cards()}',
-            onlickFunction=self.get_remaining_cards
+            onlickFunction=self.get_remaining_cards,
+            static_color=True
         )
         Button(225, 175, 200, 50,
-               '100 pile'
+               '100 pile', static_color=True
         )
         Button(
             775, 175, 200, 50,
-            '100 pile'
+            '100 pile', static_color=True
         )
         Button(
             225, 525, 150, 50,
-            '1 pile'
+            '1 pile', static_color=True
         )
         Button(
             825, 525, 150, 50,
-            '1 pile'
+            '1 pile', static_color=True
         )
 
         # main menu
@@ -175,7 +181,7 @@ class Game:
                 for card in list(self.player_2_hand_cards):
                     if card.value == card_val:
                         self.selected_card = card
-                        self.move_card(top_pile_card, target_group)
+                        self.move_card_to_pile(top_pile_card, target_group)
                         break
 
 
@@ -226,7 +232,7 @@ class Game:
 
     def load_starting_hand(self):
         self.cards_in_hand = []
-        left_card_pos = 300
+        left_card_pos = FIRST_HAND_POS_X
         distance_to_previous = 100
 
         while len(self.cards_in_hand) < MAX_CARDS_IN_HAND:
@@ -270,22 +276,22 @@ class Game:
                 self.deck.draw_card(),
                 -100
             )
-            # self.card_generator(
-            #     self.player_2_back_cards_in_hand,
-            #     left_card_pos,
-            #     'back',
-            #     -100
-            # )
+            self.card_generator(
+                self.player_2_back_cards_in_hand,
+                left_card_pos,
+                'back',
+                -100
+            )
 
             left_card_pos += distance_to_previous
 
         self.empty_hand_slot = []
 
         self.player_2_hand_cards.add(self.player_2_cards_in_hand)
-        # self.player_2_hand_cards_back.add(self.player_2_back_cards_in_hand)
+        self.player_2_hand_cards_back.add(self.player_2_back_cards_in_hand)
 
         self.all_cards.add(self.player_2_cards_in_hand)
-        # self.all_cards.add(self.player_2_back_cards_in_hand)
+        self.all_cards.add(self.player_2_back_cards_in_hand)
 
     def check_selection(self, mouse_pos):
         for card in self.hand_cards:
@@ -322,7 +328,7 @@ class Game:
                         card_clicked = False
                         self.check_selection(mouse_pos)
 
-                        if len(self.cards_in_hand) < 4:
+                        if len(self.cards_in_hand) <= MAX_CARDS_IN_HAND_FOR_REFILL_EASY:
                             for card in self.deck_cards:
                                 if card.rect.collidepoint(mouse_pos) and (len(self.empty_hand_slot) > 0):
                                     print('drew cards...')
@@ -360,7 +366,7 @@ class Game:
             # Verwendung des ausgelagerten Rules-Moduls
             if Rules.is_valid_move(pile_card.name, top_val, sel_val):
                 print(f'card {sel_val} laid down on stapel')
-                self.move_card(card, pile_card)
+                self.move_card_to_pile(card, pile_card)
             else:
                 print(f'wrong move on pile {pile_card.name}. \ncurrent card {top_val}')
                 self.check_possible_moves()
@@ -387,28 +393,29 @@ class Game:
 
     def refill_pc_hand(self): # maybe change for can just draw a card if already put 2 on piles
         while len(self.player_2_cards_in_hand) < MAX_CARDS_IN_HAND and len(self.deck) > 0:
-            pos_x = FIRST_HAND_POS_X + (len(self.player_2_cards_in_hand) * 100)
-            print('pos_x: ', pos_x)
+            if not self.empty_hand_slot:
+                break
 
+            pos_x = self.empty_hand_slot.pop(0)
             new_card_val = self.deck.draw_card()
             if new_card_val is None:
                 break
 
-            # 1. Echte Logikkarte erstellen (unsichtbar im Hintergrund)
-            new_card = Card(value=new_card_val, x=pos_x, y=-100)
+            # logic card
+            new_card = Card(value=new_card_val, x=pos_x, y=HAND_UPPER_PLAYER_POS_Y)
 
-            # 2. Visuelle Kartenrücken-Sprite erstellen
-            # back_card = Card(value='back', x=pos_x, y=-100)
+            # visuell card
+            back_card = Card(value='back', x=pos_x, y=HAND_UPPER_PLAYER_POS_Y)
 
-            # 3. Listen und Sprite-Gruppen für die Hand auffüllen
+            # lists & sprite groups filling
+            # logic cards
             self.player_2_cards_in_hand.append(new_card)
-            # self.player_2_back_cards_in_hand.append(back_card)
-
             self.player_2_hand_cards.add(new_card)
-            # self.player_2_hand_cards_back.add(back_card)
-
             self.all_cards.add(new_card)
-            # self.all_cards.add(back_card)
+            # # visuel cards
+            self.player_2_back_cards_in_hand.append(back_card)
+            self.player_2_hand_cards_back.add(back_card)
+            self.all_cards.add(back_card)
 
     def update(self):
         self.all_cards.update()
@@ -416,7 +423,7 @@ class Game:
         if self.with_pc and self.current_turn == 'pc' and not self.game_over:
             current_time = pygame.time.get_ticks()
 
-            if current_time - self.pc_timer > 600:
+            if current_time - self.pc_timer > BOT_TIMER:
                 move_made = self.gpu.simple_move()
 
                 if not move_made:
@@ -428,7 +435,7 @@ class Game:
                     # check if player has no more moves left
                     return
 
-    def move_card(self, target_pile_card, target_group):
+    def move_card_to_pile(self, target_pile_card, target_group):
         if not self.selected_card:
             return
 
@@ -442,8 +449,8 @@ class Game:
 
         if self.selected_card in hand_list:
             hand_list.remove(self.selected_card)
-            if self.current_turn == 'player1':
-                self.empty_hand_slot.append(self.selected_card.x)
+            # if self.current_turn == 'pc':
+            self.empty_hand_slot.append(self.selected_card.x)
 
         # save card value for network thingy, before selections is reset
         played_value = self.selected_card.value
@@ -511,10 +518,12 @@ class Game:
             self.ui_manager.draw_menu(self.menu_state)
         else:
             self.screen.fill(GREEN)
-            self.all_cards.draw(self.screen)
+
             for button in button_objects:
                 button.visible = button.buttonText not in ['online', 'play with PC', 'Host Game', 'Join Game', 'Back']
                 button.draw(self.screen)
+
+            self.all_cards.draw(self.screen)
 
         if self.game_over:
             self.ui_manager.draw_game_over(self.get_remaining_cards())
