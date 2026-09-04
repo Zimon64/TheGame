@@ -1,4 +1,5 @@
 import numpy as np
+from settings import MAX_CARDS_IN_HAND
 
 class GPU:
     def __init__(self, game):
@@ -9,7 +10,7 @@ class GPU:
         pc_cards = self.game.player_2_hand_cards
 
         if not self.opt_moves_calc:
-            self.planed_moves = self.automated_smartest_move_light(pc_cards, self.game.pile_sets)
+            self.planed_moves = self.automated_smartest_move_light(pc_cards, self.game.piles.get_all_piles())
             self.opt_moves_calc = True
 
         if self.planed_moves:
@@ -22,9 +23,17 @@ class GPU:
             self.execute_move(card, top_card, pile)
             return True
 
+        # self.move_remaining_cards()
+
         return False
 
     def automated_smartest_move_light(self, pc_cards, pile_sets):
+        valid_moves = []
+        special_moves = []
+        final_two_moves = []
+
+        used_card_indices = set()
+
         num_cards = len(pc_cards)
         num_piles = len(pile_sets)
 
@@ -39,13 +48,19 @@ class GPU:
                 matrix[row, col] = distance
                 matrix_abs[row, col] = abs(distance)
 
-        valid_moves = []
-
         for row in range(num_cards):
             for col in range(num_piles):
                 pos_val = matrix[row, col]
                 abs_val = matrix_abs[row, col]
 
+                if (col in (0, 1) and pos_val == +10) or (col in (2, 3) and pos_val == -10):
+                    special_moves.append({
+                        'abs_dist': abs_val,
+                        'card_idx': row,
+                        'pile_idx': col,
+                        'card_obj': list(pc_cards)[row],
+                        'pile_obj': pile_sets[col]
+                    })
                 if (col in (0, 1) and pos_val < 0) or (col in (2, 3) and pos_val > 0):
                     valid_moves.append({
                         'abs_dist': abs_val,
@@ -55,12 +70,14 @@ class GPU:
                         'pile_obj': pile_sets[col]
                     })
 
+        # special_moves.sort(key=lambda move: move['abs_dist'])
         valid_moves.sort(key=lambda move: move['abs_dist'])
 
-        final_two_moves = []
-        used_card_indices = set()
-
         for move in valid_moves:
+            for special_move in special_moves:
+                if special_move['card_idx'] not in used_card_indices:
+                    final_two_moves.append(special_move)
+                    used_card_indices.add(special_move['card_idx'])
             if move['card_idx'] not in used_card_indices:
                 final_two_moves.append(move)
                 used_card_indices.add(move['card_idx'])
@@ -77,5 +94,13 @@ class GPU:
         return final_two_moves
 
     def execute_move(self, card_to_play, target_pile_card, target_group):
+        self.game.selected_card = card_to_play
+        self.game.move_card(target_pile_card, target_group)
+
+    def move_remaining_cards(self, card_to_play, target_group):
+        remaining_hand_pos = MAX_CARDS_IN_HAND - 2
+
+
+
         self.game.selected_card = card_to_play
         self.game.move_card(target_pile_card, target_group)

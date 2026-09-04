@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 from datetime import datetime
 
 class ScoreManager:
@@ -9,37 +9,40 @@ class ScoreManager:
 
     def _ensure_file_exists(self):
         if not os.path.exists(self.filename):
-            df = pd.DataFrame(
-                columns=[
-                    'date',
-                    'score',
-                    'players',
-                    'mode'
-                ]
-            )
-            df.to_csv(self.filename, index=False)
+            with open(self.filename, mode='w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(['date', 'score', 'players', 'mode'])
 
     def save_score(self, score, player, mode):
-        df = pd.read_csv(self.filename)
-        new_entry = pd.DataFrame([{
-            'date': datetime.now().strftime('%Y-%m-%d, %H:%M:%S'),
-            'score': score,
-            'players': player,
-            'mode': mode,
-        }])
-        df = pd.concat([df, new_entry], ignore_index=True)
-        df.to_csv(self.filename, index=False)
+        date_str = datetime.now().strftime('%Y-%m-%d, %H:%M:%S')
+        with open(self.filename, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow([date_str, score, player, mode])
         print(f'Score {score} saved successfully! \n')
 
     def get_best_score(self):
-        df = pd.read_csv(self.filename)
-        if df.empty:
+        if not os.path.exists(self.filename):
             return None
 
-        hsr = df.loc[df['score'] == min(df['score'])]
+        best_row = None
+        best_score = float('inf')
 
-        date = str(hsr['date'].iloc[0])
-        score = int(hsr['score'].iloc[0])
-        player = str(hsr['players'].iloc[0])
-        mode = str(hsr['mode'].iloc[0])
-        return f'{score} ({player} @ {date} - mode: {mode})'
+        with open(self.filename, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    score_val = int(row['score'])
+                    if score_val < best_score:
+                        best_score = score_val
+                        best_row = row
+                except (ValueError, KeyError):
+                    continue
+
+        if best_row:
+            date = str(best_row['date'])
+            score = int(best_row['score'])
+            player = str(best_row['players'])
+            mode = str(best_row['mode'])
+            return f'{score} ({player} @ {date} - mode: {mode})'
+
+        return None

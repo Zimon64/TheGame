@@ -17,6 +17,8 @@ CARD_WIDTH = 100
 CARD_HEIGHT = 200
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARDS_DIR = os.path.join(BASE_DIR, 'cards')
+MAX_CARDS_IN_HAND = 6
+FIRST_HAND_POS_X = 300
 
 remaining_cards = sorted(list(range(2, 100)))
 
