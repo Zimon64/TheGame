@@ -5,6 +5,7 @@ data = {
     'score': [],
     'players': [],
     'mode': [],
+    'time': []
 }
 
 df = pd.DataFrame(data)

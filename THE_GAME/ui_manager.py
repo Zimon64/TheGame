@@ -63,6 +63,23 @@ class UIManager(object):
                 button.visible = button.buttonText in ['Host Game', 'Join Game', 'Back']
                 button.draw(self.screen)
 
+    def draw(self):
+        if self.game.new_game or self.game.sub_menu:
+            self.game.ui_manager.draw_menu(self.game.menu_state)
+        else:
+            self.game.screen.fill(GREEN)
+
+            for button in button_objects:
+                button.visible = button.buttonText not in ['online', 'play with PC', 'Host Game', 'Join Game', 'Back']
+                button.draw(self.game.screen)
+
+            self.game.all_cards.draw(self.game.screen)
+
+        if self.game.game_over:
+            self.game.ui_manager.draw_game_over(self.game.get_remaining_cards())
+
+        pygame.display.flip()
+
 
 class MenuManager:
     def __init__(self, game):

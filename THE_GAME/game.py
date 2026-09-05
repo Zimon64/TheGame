@@ -8,7 +8,6 @@ from settings import (
 )
 from card import Card
 from card_setup import CardSetup
-from button import button_objects
 from score_manager import ScoreManager
 from gpu import GPU
 from online import Online
@@ -28,7 +27,7 @@ class Game:
         # Ausgelagerte Manager & Module
         self.card_setup = CardSetup(self)
         self.deck = Deck()
-        self.piles = PileGroup()
+        self.piles = PileGroup(self)
         self.score_manager = ScoreManager()
         self.ui_manager = UIManager(self, self.screen, self.score_manager)
         self.menu_manager = MenuManager(self)
@@ -82,7 +81,7 @@ class Game:
                 for card in list(self.player_2_hand_cards):
                     if card.value == card_val:
                         self.selected_card = card
-                        self.move_card_to_pile(top_pile_card, target_group)
+                        self.piles.move_card_to_pile(top_pile_card, target_group)
                         break
 
     def new_game_mode(self):
@@ -162,7 +161,7 @@ class Game:
             # Verwendung des ausgelagerten Rules-Moduls
             if Rules.is_valid_move(pile_card.name, top_val, sel_val):
                 print(f'card {sel_val} laid down on stapel')
-                self.move_card_to_pile(card, pile_card)
+                self.piles.move_card_to_pile(card, pile_card)
             else:
                 print(f'wrong move on pile {pile_card.name}. \ncurrent card {top_val}')
                 self.check_possible_moves()
@@ -231,87 +230,11 @@ class Game:
                     # check if player has no more moves left
                     return
 
-    def move_card_to_pile(self, target_pile_card, target_group):
-        if not self.selected_card:
-            return
-
-        # delete from hand
-        if self.current_turn == 'player1' or not self.with_pc:
-            hand_list = self.cards_in_hand
-            hand_group = self.hand_cards
-        else:
-            hand_list = self.player_2_cards_in_hand
-            hand_group = self.player_2_hand_cards
-
-        if self.selected_card in hand_list:
-            hand_list.remove(self.selected_card)
-            # if self.current_turn == 'pc':
-            self.empty_hand_slot.append(self.selected_card.x)
-
-        # save card value for network thingy, before selections is reset
-        played_value = self.selected_card.value
-
-        # delete from hand group - no double selection possible
-        hand_group.remove(self.selected_card)
-        self.selected_card.deselect()
-
-        # set final coordinates & start animation
-        self.selected_card.target_pile_card = target_pile_card
-        self.selected_card.move_to(target_pile_card.rect.x, target_pile_card.rect.y)
-
-        # if online: move send to other player
-        if self.selected_mode == 'online':
-            self.online.send_action('MOVED_CARD', {
-                'card_value': played_value,
-                'target_pile': target_group.name
-            })
-
-        # reset selection
-        self.selected_card = None
-
-    def game_over_screen(self):
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((50, 50, 50, 200))
-
-        text_game_over = FONT.render('GAME OVER', True, RED)
-        rect_game_over = text_game_over.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 30))
-
-        score_text = f'Current Score: {self.get_remaining_cards()}'
-        text_score = FONT.render(score_text, True, WHITE)
-        rect_score = text_score.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 30))
-
-        score_text = f'Highscore: {self.score_manager.get_best_score()}'
-        text_highscore = FONT.render(score_text, True, WHITE)
-        rect_highscore = text_score.get_rect(center=(WIDTH // 5, HEIGHT // 2 + 90))
-
-        overlay.blit(text_game_over, rect_game_over)
-        overlay.blit(text_score, rect_score)
-        overlay.blit(text_highscore, rect_highscore)
-
-        self.screen.blit(overlay, (0, 0))
-
-    def draw(self):
-        if self.new_game or self.sub_menu:
-            self.ui_manager.draw_menu(self.menu_state)
-        else:
-            self.screen.fill(GREEN)
-
-            for button in button_objects:
-                button.visible = button.buttonText not in ['online', 'play with PC', 'Host Game', 'Join Game', 'Back']
-                button.draw(self.screen)
-
-            self.all_cards.draw(self.screen)
-
-        if self.game_over:
-            self.ui_manager.draw_game_over(self.get_remaining_cards())
-
-        pygame.display.flip()
-
     def run(self):
         while self.running:
             self.input_handler.events()
             self.update()
-            self.draw()
+            self.ui_manager.draw()
             self.clock.tick(60)
 
         pygame.quit()

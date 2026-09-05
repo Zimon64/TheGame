@@ -89,8 +89,6 @@ class InputHandler:
         self.game.all_cards.add(self.game.cards_in_hand)
         self.game.empty_hand_slot.clear()
 
-
-
     def check_selection(self, mouse_pos):
         card_clicked = False
         for card in self.game.hand_cards:

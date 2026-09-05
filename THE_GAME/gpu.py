@@ -1,6 +1,6 @@
 import numpy as np
 
-from settings import MAX_CARDS_IN_HAND, FIRST_HAND_POS_X, HAND_UPPER_PLAYER_POS_Y, CARD_WIDTH
+from settings import FIRST_HAND_POS_X, HAND_UPPER_PLAYER_POS_Y, CARD_WIDTH
 
 class GPU:
     def __init__(self, game):
@@ -98,7 +98,7 @@ class GPU:
 
     def execute_move(self, card_to_play, target_pile_card, target_group):
         self.game.selected_card = card_to_play
-        self.game.move_card_to_pile(target_pile_card, target_group)
+        self.game.piles.move_card_to_pile(target_pile_card, target_group)
 
     def move_remaining_cards(self, cards_to_sort, y_pos=HAND_UPPER_PLAYER_POS_Y):
         x_pos = FIRST_HAND_POS_X
