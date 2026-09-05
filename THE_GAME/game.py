@@ -310,74 +310,83 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-
             elif event.type == MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    # 1. Menü-Buttons prüfen
-                    button_clicked = False
-                    for button in button_objects:
-                        if button.visible and button.check_event(event):
-                            button_clicked = True
-                            break
+                self.mouse_events(event)
 
-                    # 2. Wenn kein Button geklickt wurde, Karten-Logik ausführen
-                    if not button_clicked and not (self.new_game or self.sub_menu):
-                        mouse_pos = event.pos
-                        card_clicked = False
-                        self.check_selection(mouse_pos)
+    def mouse_events(self, event):
+        if event.button == 1:
+            button_clicked = self.check_menu_buttons(button_objects, event)
+            if not button_clicked and not (self.new_game or self.sub_menu):
+                self.carry_out_cards_logic(event)
 
-                        if len(self.cards_in_hand) == 0 and self.get_remaining_cards() == 0 and len(self.player_2_cards_in_hand) == 0:
-                            print('no cards left\n\n ---GAME WON!!!--- \n\n')
+    def check_menu_buttons(self, button_objects, event):
+        for button in button_objects:
+            if button.visible and button.check_event(event):
+                return True
+        return False
 
-                        elif ((len(self.cards_in_hand) < MAX_CARDS_IN_HAND and self.get_remaining_cards() == 0) or
-                              len(self.cards_in_hand) <= MAX_CARDS_IN_HAND_FOR_REFILL_EASY):
-                            self.card_drawing(self.cards_in_hand, mouse_pos)
+    def carry_out_cards_logic(self, event):
+        mouse_pos = event.pos
+        card_clicked = self.check_selection(mouse_pos)
 
-                        else:
-                            print('not enough cards laid out yet...')
+        if len(self.cards_in_hand) == 0 and self.get_remaining_cards() == 0 and len(self.player_2_cards_in_hand) == 0:
+            print('no cards left\n\n ---GAME WON!!!--- \n\n')
+            return
 
-                        if not card_clicked and self.selected_card and not card_clicked and self.selected_card:
-                            for pile in self.piles.get_all_piles():
-                                for card in pile:
-                                    self.stapels_logic(card, pile, mouse_pos)
+        if not card_clicked:
+            is_deck_clicked = any(card.rect.collidepoint(mouse_pos) for card in self.deck_cards)
+            if is_deck_clicked:
+                if ((len(self.cards_in_hand) < MAX_CARDS_IN_HAND and self.get_remaining_cards() == 0) or
+                        len(self.cards_in_hand) <= MAX_CARDS_IN_HAND_FOR_REFILL_EASY):
+                    self.card_drawing(self.cards_in_hand, mouse_pos)
+                else:
+                    print('not enough cards laid out yet...')
 
-    def card_drawing(self, cards_in_hand, mouse_pos,
+            elif self.selected_card:
+                for pile in self.piles.get_all_piles():
+                    for card in pile:
+                        self.stapels_logic(card, pile, mouse_pos)
+
+    def card_drawing(self, cards_in_hand,  mouse_pos,
                      max_cards_hand=MAX_CARDS_IN_HAND, max_cards_hand_easy=MAX_CARDS_IN_HAND_FOR_REFILL_EASY):
+        deck_clicked = any(card.rect.collidepoint(mouse_pos) for card in self.deck_cards)
+        if not deck_clicked or len(self.empty_hand_slot)==0:
+            return
+
         for card in self.deck_cards:
             card_col_n_empty_hand_slot = card.rect.collidepoint(mouse_pos) and (len(self.empty_hand_slot) > 0)
             if len(cards_in_hand) < max_cards_hand and self.get_remaining_cards() == 0:
                 print('no cards left to draw from the Deck pile... \nnext players turn...')
-                if card_col_n_empty_hand_slot and self.with_pc:
-                    print('no cards drawn...')
-                    self.current_turn = 'pc'
-                    self.pc_timer = pygame.time.get_ticks()
-                elif card_col_n_empty_hand_slot and not self.with_pc:
-                    # logic for drawing online
-                    return
+                self._finish_turn()
 
             elif len(cards_in_hand) <= max_cards_hand_easy:
-                print('draw cards...')
-                for x in range(len(self.empty_hand_slot)):
-                    if self.get_remaining_cards() == 0:
-                        break
-                    pos_x = self.empty_hand_slot[x]
-                    self.card_generator(
-                        self.cards_in_hand,
-                        pos_x,
-                        self.deck.draw_card(),
-                        600,
-                    )
+                self._refill_player_hand()
+                self._finish_turn()
 
-                self.hand_cards.add(self.cards_in_hand)
-                self.all_cards.add(self.cards_in_hand)
-                self.empty_hand_slot.clear()
+    def _finish_turn(self):
+        if self.with_pc:
+            self.current_turn = 'pc'
+            self.pc_timer = pygame.time.get_ticks()
+        else:
+            # logic for drawing online
+            pass
 
-                if self.with_pc:
-                    self.current_turn = 'pc'
-                    self.pc_timer = pygame.time.get_ticks()
-                else:
-                    # logic for drawing online
-                    return
+    def _refill_player_hand(self):
+        print('draw cards...')
+        for x in range(len(self.empty_hand_slot)):
+            if self.get_remaining_cards() == 0:
+                break
+            pos_x = self.empty_hand_slot[x]
+            self.card_generator(
+                self.cards_in_hand,
+                pos_x,
+                self.deck.draw_card(),
+                600,
+            )
+
+        self.hand_cards.add(self.cards_in_hand)
+        self.all_cards.add(self.cards_in_hand)
+        self.empty_hand_slot.clear()
 
     def stapels_logic(self, card, pile_card, mouse_pos):
         if card.rect.collidepoint(mouse_pos):
