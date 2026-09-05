@@ -1,5 +1,7 @@
 import pygame
 
+from time import time
+
 from settings import WIDTH, HEIGHT, GREEN, RED, WHITE, FONT
 from button import button_objects, Button
 
@@ -190,4 +192,18 @@ class MenuManager:
         self.game.selected_mode = 'with_pc'
         self.game.new_game = False
         self.game.with_pc = True
+        self.start_timer()
         self.game.current_turn = 'player1'
+
+    def start_timer(self):
+        self.starting_time = time()
+
+    def end_timer(self):
+        ending_time = time()
+        delta = ending_time - self.starting_time
+        print(delta)
+
+        minutes = int(delta // 60)
+        seconds = int(delta % 60)
+        milliseconds = int((delta - int(delta)) * 1000)
+        return f'{minutes:02d}:{seconds:02d}:{milliseconds:03d}'

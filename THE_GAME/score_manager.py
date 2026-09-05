@@ -2,6 +2,8 @@ import os
 import csv
 from datetime import datetime
 
+from ui_manager import MenuManager
+
 class ScoreManager:
     def __init__(self, filename='stats.csv'):
         self.filename = filename
@@ -11,13 +13,13 @@ class ScoreManager:
         if not os.path.exists(self.filename):
             with open(self.filename, mode='w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow(['date', 'score', 'players', 'mode'])
+                writer.writerow(['date', 'score', 'players', 'mode', 'time'])
 
-    def save_score(self, score, player, mode):
+    def save_score(self, score, player, mode, elapsed_time):
         date_str = datetime.now().strftime('%Y-%m-%d, %H:%M:%S')
         with open(self.filename, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
-            writer.writerow([date_str, score, player, mode])
+            writer.writerow([date_str, score, player, mode, elapsed_time])
         print(f'Score {score} saved successfully! \n')
 
     def get_best_score(self):
@@ -43,6 +45,7 @@ class ScoreManager:
             score = int(best_row['score'])
             player = str(best_row['players'])
             mode = str(best_row['mode'])
-            return f'{score} ({player} @ {date} - mode: {mode})'
+            time = str(best_row['time'])
+            return f'{score} [{player} - time: {time} - mode: {mode}]'
 
         return None
