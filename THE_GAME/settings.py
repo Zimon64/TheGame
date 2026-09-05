@@ -23,6 +23,7 @@ FIRST_HAND_POS_X = 300
 HAND_UPPER_PLAYER_POS_Y = -100
 
 remaining_cards = sorted(list(range(2, 100)))
+# remaining_cards = sorted(list(range(2,8)))
 
 # fonts
 pygame.font.init()

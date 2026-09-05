@@ -5,6 +5,7 @@ from settings import MAX_CARDS_IN_HAND, FIRST_HAND_POS_X, HAND_UPPER_PLAYER_POS_
 class GPU:
     def __init__(self, game):
         self.game = game
+        self.matrix = []
         self.opt_moves_calc = False
 
     def simple_move(self):
@@ -37,20 +38,22 @@ class GPU:
         num_cards = len(pc_cards)
         num_piles = len(pile_sets)
 
-        matrix = np.zeros((num_cards, num_piles))
-        matrix_abs = np.zeros((num_cards, num_piles))
+        self.matrix = np.zeros((num_cards, num_piles))
+        matrix_abs = self.matrix.copy()
 
         for row, card in enumerate(pc_cards):
             for col, pile in enumerate(pile_sets):
                 pile_card_value = pile.sprites()[0].value
                 distance = card.value - pile_card_value
 
-                matrix[row, col] = distance
+                self.matrix[row, col] = distance
                 matrix_abs[row, col] = abs(distance)
+
+        print(self.matrix.shape)
 
         for row in range(num_cards):
             for col in range(num_piles):
-                pos_val = matrix[row, col]
+                pos_val = self.matrix[row, col]
                 abs_val = matrix_abs[row, col]
 
                 if (col in (0, 1) and pos_val == +10) or (col in (2, 3) and pos_val == -10):
@@ -96,8 +99,6 @@ class GPU:
     def execute_move(self, card_to_play, target_pile_card, target_group):
         self.game.selected_card = card_to_play
         self.game.move_card_to_pile(target_pile_card, target_group)
-
-        # self.move_remaining_cards(self.game.player_2_hand_cards)
 
     def move_remaining_cards(self, cards_to_sort, y_pos=HAND_UPPER_PLAYER_POS_Y):
         x_pos = FIRST_HAND_POS_X
