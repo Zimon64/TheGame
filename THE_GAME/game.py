@@ -30,7 +30,7 @@ class Game:
         self.deck = Deck()
         self.piles = PileGroup()
         self.score_manager = ScoreManager()
-        self.ui_manager = UIManager(self.screen, self.score_manager)
+        self.ui_manager = UIManager(self, self.screen, self.score_manager)
         self.menu_manager = MenuManager(self)
         self.gpu = GPU(self)
         self.online = Online(self)
@@ -289,25 +289,6 @@ class Game:
         overlay.blit(text_highscore, rect_highscore)
 
         self.screen.blit(overlay, (0, 0))
-
-    def mode_select_screen(self):
-        if self.menu_state == 'main_menu':
-            self.screen.fill(GREEN)
-
-            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            overlay.fill((50, 50, 50, 200))
-            self.screen.blit(overlay, (0, 0))
-
-            for button in button_objects:
-                button.visible = button.buttonText in ['online', 'play with PC']
-                button.draw(self.screen)
-
-        elif self.menu_state == 'online_menu':
-            self.screen.fill(GREEN)
-
-            for button in button_objects:
-                button.visible = button.buttonText in ['Host Game', 'Join Game', 'Back']
-                button.draw(self.screen)
 
     def draw(self):
         if self.new_game or self.sub_menu:

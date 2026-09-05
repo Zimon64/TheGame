@@ -4,7 +4,8 @@ from settings import WIDTH, HEIGHT, GREEN, RED, WHITE, FONT
 from button import button_objects, Button
 
 class UIManager(object):
-    def __init__(self, screen, score_manager):
+    def __init__(self, game, screen, score_manager):
+        self.game = game
         self.screen = screen
         self.score_manager = score_manager
 
@@ -39,6 +40,25 @@ class UIManager(object):
                 button.draw(self.screen)
 
         elif menu_state == 'online_menu':
+            for button in button_objects:
+                button.visible = button.buttonText in ['Host Game', 'Join Game', 'Back']
+                button.draw(self.screen)
+
+    def mode_select_screen(self):
+        if self.game.menu_state == 'main_menu':
+            self.screen.fill(GREEN)
+
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((50, 50, 50, 200))
+            self.screen.blit(overlay, (0, 0))
+
+            for button in button_objects:
+                button.visible = button.buttonText in ['online', 'play with PC']
+                button.draw(self.screen)
+
+        elif self.game.menu_state == 'online_menu':
+            self.screen.fill(GREEN)
+
             for button in button_objects:
                 button.visible = button.buttonText in ['Host Game', 'Join Game', 'Back']
                 button.draw(self.screen)
