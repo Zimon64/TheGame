@@ -13,10 +13,12 @@ GameIdeas/
 ├── game.py                  # Main game class: game loop, event routing, state management
 ├── game_logic.py            # Game domain logic (Deck, PileGroup, move rules)
 ├── ui_manager.py            # HUD, rendering overlays, layout management
+├── input_manager.py         # Event handling (mouse & keyboard input)
 ├── gpu.py                   # BOT decision-making logic
 ├── score_manager.py         # ScoreManager class (CSV file access)
 ├── card.py                  # Card sprite class (visuals & card attributes)
 ├── button.py                # Interactive UI button class
+├── card.py                  # Card sprites (generation & attributes)
 ├── settings.py              # global constants (color, window sizes, paths)
 ```
 ## Playing Rules
