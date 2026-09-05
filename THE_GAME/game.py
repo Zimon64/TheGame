@@ -1,20 +1,20 @@
-import random
 import pygame
-from pygame.constants import MOUSEBUTTONDOWN
 
 from settings import (
     WIDTH, HEIGHT, GREEN, RED, WHITE,
     FONT,
-    FIRST_HAND_POS_X, MAX_CARDS_IN_HAND, MAX_CARDS_IN_HAND_FOR_REFILL_EASY, HAND_UPPER_PLAYER_POS_Y,
+    FIRST_HAND_POS_X, MAX_CARDS_IN_HAND, HAND_UPPER_PLAYER_POS_Y,
     BOT_TIMER,
 )
 from card import Card
-from button import Button, button_objects
+from card_setup import CardSetup
+from button import button_objects
 from score_manager import ScoreManager
 from gpu import GPU
 from online import Online
-from ui_manager import UIManager
+from ui_manager import UIManager, MenuManager
 from game_logic import Rules, Deck, PileGroup
+from input_handler import InputHandler
 
 class Game:
     def __init__(self):
@@ -26,12 +26,15 @@ class Game:
         self.running = True
 
         # Ausgelagerte Manager & Module
+        self.card_setup = CardSetup(self)
         self.deck = Deck()
         self.piles = PileGroup()
         self.score_manager = ScoreManager()
         self.ui_manager = UIManager(self.screen, self.score_manager)
+        self.menu_manager = MenuManager(self)
         self.gpu = GPU(self)
         self.online = Online(self)
+        self.input_handler = InputHandler(self)
 
         # Zustände
         self.selected_card = None
@@ -52,111 +55,11 @@ class Game:
         self.player_2_hand_cards = pygame.sprite.Group()
         self.player_2_hand_cards_back = pygame.sprite.Group()
 
-        self.get_buttons()
+        self.menu_manager.get_buttons()
         self.new_game_mode()
-
-    def reset_button(self):
-        self.reset_game()
-        self.new_game_mode()
-
-    def get_buttons(self):
-        # table
-        Button(
-            0, 0, 200, 50,
-            'New Game',
-            self.reset_button,
-            True)
-        Button(
-            500, 250, 200, 50,
-            buttonText= lambda: f'DECK: {self.get_remaining_cards()}',
-            onlickFunction=self.get_remaining_cards,
-            static_color=True
-        )
-        Button(225, 175, 200, 50,
-               '100 pile', static_color=True
-        )
-        Button(
-            775, 175, 200, 50,
-            '100 pile', static_color=True
-        )
-        Button(
-            225, 525, 150, 50,
-            '1 pile', static_color=True
-        )
-        Button(
-            825, 525, 150, 50,
-            '1 pile', static_color=True
-        )
-
-        # main menu
-        Button(
-            500, 250, 200, 50,
-            'online',
-            self.open_online_menu,
-            True
-        )
-
-        Button(
-            450, 500, 300, 50,
-            'play with PC',
-            self.start_with_pc,
-            True
-        )
-
-        # under menu - online buttons
-        Button(
-            450, 250, 300, 50,
-            'Host Game',
-            self.start_host_game,
-            True
-        )
-        Button(
-            450, 375, 300, 50,
-            'Join Game',
-            self.start_join_game,
-            True
-        )
-        Button(
-            450, 500, 300, 50,
-            'Back',
-            self.back_to_main_menu,
-            True
-        )
-
-        self.game_over = False
 
     def get_remaining_cards(self):
         return len(self.deck)
-
-    def back_to_main_menu(self):
-        self.menu_state = 'main_menu'
-        self.selected_mode = None
-        self.sub_menu = False
-        self.new_game = True
-
-    def open_online_menu(self):
-        self.menu_state = 'online_menu'
-        self.sub_menu = True
-
-    def start_host_game(self):
-        self.reset_game()
-
-        self.selected_mode = 'online'
-        self.menu_state = 'in_game'
-
-        self.new_game = False
-
-        print(f'Starting new game as HOST...')
-        self.online.start_host()
-
-    def start_join_game(self):
-        self.selected_mode = 'online'
-
-        self.new_game = False
-        self.sub_menu = False
-
-        print(f'Connecting with HOST...')
-        self.online._connect_to_host("127.0.0.1")
 
     def handle_network_action(self, packet):
         action = packet.get('action')
@@ -182,14 +85,6 @@ class Game:
                         self.move_card_to_pile(top_pile_card, target_group)
                         break
 
-
-    def start_with_pc(self):
-        self.reset_game()
-        self.selected_mode = 'with_pc'
-        self.new_game = False
-        self.with_pc = True
-        self.current_turn = 'player1'
-
     def new_game_mode(self):
         self.new_game = True
 
@@ -209,44 +104,9 @@ class Game:
 
         self.deck.reset()
 
-        self.load_starting_cards()
-        self.load_starting_hand()
+        self.card_setup.load_starting_cards()
+        self.card_setup.load_starting_hand()
         self.load_other_game_players()
-
-    def load_starting_cards(self):
-        card_1_right = Card(value=1, x=1000, y=500)
-        card_1_left = Card(value=1, x=100, y=500)
-        card_100_right = Card(value=100, x=1000, y=100)
-        card_100_left = Card(value=100, x=100, y=100)
-        card_deck = Card(value='back', x=550, y=300)
-
-        self.piles.pile_100_left.add(card_100_left)
-        self.piles.pile_100_right.add(card_100_right)
-        self.piles.pile_1_left.add(card_1_left)
-        self.piles.pile_1_right.add(card_1_right)
-        self.deck_cards.add(card_deck)
-
-        self.all_cards.add(card_1_left, card_1_right, card_100_left, card_100_right, card_deck)
-
-    def load_starting_hand(self):
-        self.cards_in_hand = []
-        left_card_pos = FIRST_HAND_POS_X
-        distance_to_previous = 100
-
-        while len(self.cards_in_hand) < MAX_CARDS_IN_HAND:
-            self.card_generator(
-                self.cards_in_hand,
-                left_card_pos,
-                self.deck.draw_card(),
-                600,
-            )
-            left_card_pos += distance_to_previous
-
-        self.empty_hand_slot = []
-
-        self.hand_cards.add(self.cards_in_hand)
-
-        self.all_cards.add(self.cards_in_hand)
 
     def fill_up_hand(self, empty_hand_pos):
         self.selected_card.move_to(*empty_hand_pos)
@@ -290,103 +150,6 @@ class Game:
 
         self.all_cards.add(self.player_2_cards_in_hand)
         self.all_cards.add(self.player_2_back_cards_in_hand)
-
-    def check_selection(self, mouse_pos):
-        for card in self.hand_cards:
-            if card.rect.collidepoint(mouse_pos):
-                if self.selected_card:
-                    self.selected_card.deselect()
-
-                self.selected_card = card
-                self.selected_card_value = card.value
-                print(card)
-                self.selected_card.select()
-
-                print(f'card {card.value} from hand selected...')
-                card_clicked = True
-                break
-
-    def events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            elif event.type == MOUSEBUTTONDOWN:
-                self.mouse_events(event)
-
-    def mouse_events(self, event):
-        if event.button == 1:
-            button_clicked = self.check_menu_buttons(button_objects, event)
-            if not button_clicked and not (self.new_game or self.sub_menu):
-                self.carry_out_cards_logic(event)
-
-    def check_menu_buttons(self, button_objects, event):
-        for button in button_objects:
-            if button.visible and button.check_event(event):
-                return True
-        return False
-
-    def carry_out_cards_logic(self, event):
-        mouse_pos = event.pos
-        card_clicked = self.check_selection(mouse_pos)
-
-        if len(self.cards_in_hand) == 0 and self.get_remaining_cards() == 0 and len(self.player_2_cards_in_hand) == 0:
-            print('no cards left\n\n ---GAME WON!!!--- \n\n')
-            return
-
-        if not card_clicked:
-            is_deck_clicked = any(card.rect.collidepoint(mouse_pos) for card in self.deck_cards)
-            if is_deck_clicked:
-                if ((len(self.cards_in_hand) < MAX_CARDS_IN_HAND and self.get_remaining_cards() == 0) or
-                        len(self.cards_in_hand) <= MAX_CARDS_IN_HAND_FOR_REFILL_EASY):
-                    self.card_drawing(self.cards_in_hand, mouse_pos)
-                else:
-                    print('not enough cards laid out yet...')
-
-            elif self.selected_card:
-                for pile in self.piles.get_all_piles():
-                    for card in pile:
-                        self.stapels_logic(card, pile, mouse_pos)
-
-    def card_drawing(self, cards_in_hand,  mouse_pos,
-                     max_cards_hand=MAX_CARDS_IN_HAND, max_cards_hand_easy=MAX_CARDS_IN_HAND_FOR_REFILL_EASY):
-        deck_clicked = any(card.rect.collidepoint(mouse_pos) for card in self.deck_cards)
-        if not deck_clicked or len(self.empty_hand_slot)==0:
-            return
-
-        for card in self.deck_cards:
-            card_col_n_empty_hand_slot = card.rect.collidepoint(mouse_pos) and (len(self.empty_hand_slot) > 0)
-            if len(cards_in_hand) < max_cards_hand and self.get_remaining_cards() == 0:
-                print('no cards left to draw from the Deck pile... \nnext players turn...')
-                self._finish_turn()
-
-            elif len(cards_in_hand) <= max_cards_hand_easy:
-                self._refill_player_hand()
-                self._finish_turn()
-
-    def _finish_turn(self):
-        if self.with_pc:
-            self.current_turn = 'pc'
-            self.pc_timer = pygame.time.get_ticks()
-        else:
-            # logic for drawing online
-            pass
-
-    def _refill_player_hand(self):
-        print('draw cards...')
-        for x in range(len(self.empty_hand_slot)):
-            if self.get_remaining_cards() == 0:
-                break
-            pos_x = self.empty_hand_slot[x]
-            self.card_generator(
-                self.cards_in_hand,
-                pos_x,
-                self.deck.draw_card(),
-                600,
-            )
-
-        self.hand_cards.add(self.cards_in_hand)
-        self.all_cards.add(self.cards_in_hand)
-        self.empty_hand_slot.clear()
 
     def stapels_logic(self, card, pile_card, mouse_pos):
         if card.rect.collidepoint(mouse_pos):
@@ -564,9 +327,8 @@ class Game:
         pygame.display.flip()
 
     def run(self):
-        # Hauptschleife
         while self.running:
-            self.events()
+            self.input_handler.events()
             self.update()
             self.draw()
             self.clock.tick(60)

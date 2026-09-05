@@ -14,9 +14,9 @@ class Deck:
         self.reset()
 
     def reset(self):
-        # self.remaining_cards = sorted(list(range(2, 100)))
-        # check for game ending behavior
-        self.remaining_cards = sorted(list(range(2,16)))
+        self.remaining_cards = sorted(list(range(2, 100)))
+        # # check for game ending behavior
+        # self.remaining_cards = sorted(list(range(2,16)))
 
     def draw_card(self):
         if not self.remaining_cards:
