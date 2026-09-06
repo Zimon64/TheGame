@@ -32,6 +32,9 @@ class Button():
         if not self.visible:
             return
 
+        self.buttonRect.x = int(self.x)
+        self.buttonRect.y = int(self.y)
+
         mousePos = pygame.mouse.get_pos()
         self.buttonSurface.fill(self.fillColors['normal'])
 

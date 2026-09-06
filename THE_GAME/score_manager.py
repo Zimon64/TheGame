@@ -1,9 +1,7 @@
 import os
 import csv
-import numpy as np
-from datetime import datetime
 
-from ui_manager import MenuManager
+from datetime import datetime
 
 class ScoreManager:
     def __init__(self, filename='stats.csv'):
@@ -37,7 +35,7 @@ class ScoreManager:
                 try:
                     score_val = int(row['score'])
                     time_ms = self.time_to_ms(row['time'])
-                    
+
                     if (score_val < best_score) or (score_val == best_score and time_ms < best_time_ms):
                         best_score = score_val
                         best_time_ms = time_ms

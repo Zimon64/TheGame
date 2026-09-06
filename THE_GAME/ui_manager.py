@@ -38,7 +38,7 @@ class UIManager(object):
             self.screen.blit(overlay, (0, 0))
 
             for button in button_objects:
-                button.visible = button.buttonText in ['online', 'play with PC']
+                button.visible = button.buttonText in ['online', 'play with PC', 'Scoring List']
                 button.draw(self.screen)
 
         elif menu_state == 'online_menu':
@@ -55,7 +55,7 @@ class UIManager(object):
             self.screen.blit(overlay, (0, 0))
 
             for button in button_objects:
-                button.visible = button.buttonText in ['online', 'play with PC']
+                button.visible = button.buttonText in ['online', 'play with PC', 'Scoring List']
                 button.draw(self.screen)
 
         elif self.game.menu_state == 'online_menu':
@@ -66,19 +66,37 @@ class UIManager(object):
                 button.draw(self.screen)
 
     def draw(self):
-        if self.game.new_game or self.game.sub_menu:
-            self.game.ui_manager.draw_menu(self.game.menu_state)
+        is_in_menu = self.game.sub_menu or self.game.menu_state in ['main_menu', 'online_menu']
+
+        # Position explizit bestimmen
+        if is_in_menu:
+            scoring_btn_x = 450
+            scoring_btn_y = 500
+        else:
+            scoring_btn_x = WIDTH - 300
+            scoring_btn_y = 0
+
+        # Position ERST setzen
+        self.game.menu_manager.set_button_pos('Scoring List', scoring_btn_x, scoring_btn_y)
+
+        if is_in_menu:
+            self.draw_menu(self.game.menu_state)
         else:
             self.game.screen.fill(GREEN)
 
             for button in button_objects:
-                button.visible = button.buttonText not in ['online', 'play with PC', 'Host Game', 'Join Game', 'Back']
+                btn_text = button.buttonText() if callable(button.buttonText) else button.buttonText
+
+                # 'Scoring List' muss im Spiel sichtbar bleiben!
+                button.visible = btn_text not in [
+                    'online', 'play with PC', 'Host Game', 'Join Game', 'Back'
+                ]
                 button.draw(self.game.screen)
 
             self.game.all_cards.draw(self.game.screen)
 
         if self.game.game_over:
-            self.game.ui_manager.draw_game_over(self.game.get_remaining_cards())
+            self.draw_game_over(self.game.get_remaining_cards())
 
         pygame.display.flip()
 
@@ -86,6 +104,17 @@ class UIManager(object):
 class MenuManager:
     def __init__(self, game):
         self.game = game
+
+    def set_button_pos(self, text, x, y):
+        for button in button_objects:
+            btn_text = button.buttonText() if callable(button.buttonText) else button.buttonText
+            if btn_text == text:
+                button.x = x
+                button.y = y
+                if hasattr(button, 'rect'):
+                    button.rect.x = x
+                    button.rect.y = y
+                    button.rect.topleft = (x, y)
 
     def get_buttons(self):
         # table
@@ -123,11 +152,16 @@ class MenuManager:
             self.open_online_menu,
             True
         )
-
         Button(
-            450, 500, 300, 50,
+            450, 375, 300, 50,
             'play with PC',
             self.start_with_pc,
+            True
+        )
+        Button(
+            450, 500, 300, 50,
+            'Scoring List',
+            self.scoring_list,
             True
         )
 
@@ -155,6 +189,7 @@ class MenuManager:
 
     def reset_button(self):
         self.game.reset_game()
+        self.game.menu_state ='main_menu'
         self.game.new_game_mode()
 
     def back_to_main_menu(self):
@@ -169,10 +204,8 @@ class MenuManager:
 
     def start_host_game(self):
         self.game.reset_game()
-
         self.game.selected_mode = 'online'
         self.game.menu_state = 'in_game'
-
         self.game.new_game = False
 
         print(f'Starting new game as HOST...')
@@ -180,7 +213,6 @@ class MenuManager:
 
     def start_join_game(self):
         self.game.selected_mode = 'online'
-
         self.game.new_game = False
         self.game.sub_menu = False
 
@@ -191,9 +223,14 @@ class MenuManager:
         self.game.reset_game()
         self.game.selected_mode = 'with_pc'
         self.game.new_game = False
+        self.game.sub_menu = False
+        self.game.menu_state = 'in_game'
         self.game.with_pc = True
         self.start_timer()
         self.game.current_turn = 'player1'
+
+    def scoring_list(self):
+        return
 
     def start_timer(self):
         self.starting_time = time()
