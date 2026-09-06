@@ -12,6 +12,7 @@ class InputHandler:
             if event.type == pygame.QUIT:
                 self.game.running = False
 
+            # --- MAUS-EVENTS ---
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if getattr(self.game, 'show_scoring_list', False):
                     if event.button == 4:
@@ -23,12 +24,41 @@ class InputHandler:
                     elif event.button == 1:
                         self.check_menu_buttons(button_objects, event)
 
+                elif getattr(self.game, 'show_change_name_interface', False):
+                    if event.button == 1:
+                        self.check_menu_buttons(button_objects, event)
+
                 else:
                     self.mouse_events(event)
 
-            elif event.type == pygame.KEYDOWN and getattr(self.game, 'show_scoring_list', False):
-                if event.key == pygame.K_ESCAPE:
-                    self.game.show_scoring_list = False
+            # --- TASTATUR-EVENTS ---
+            elif event.type == pygame.KEYDOWN:
+                if getattr(self.game, 'show_scoring_list', False):
+                    if event.key == pygame.K_ESCAPE:
+                        self.game.show_scoring_list = False
+
+                elif getattr(self.game, 'show_change_name_interface', False):
+                    self.handle_name_input_keys(event)
+
+    def handle_name_input_keys(self, event):
+        if event.key == pygame.K_ESCAPE:
+            self.game.show_change_name_interface = False
+
+        elif event.key == pygame.K_RETURN:
+            # Eingabe mit ENTER bestätigen, leere Eingaben abfangen
+            if not self.game.player_name.strip():
+                self.game.player_name = "PLAYER1"  # Fallback falls leer
+            print(f"Neuer Name gespeichert: {self.game.player_name}")
+            self.game.show_change_name_interface = False
+
+        elif event.key == pygame.K_BACKSPACE:
+            # Letzten Buchstaben löschen
+            self.game.player_name = self.game.player_name[:-1]
+
+        else:
+            # Nur druckbare Zeichen (Buchstaben, Zahlen, Leerzeichen) anhängen (max. 10 Zeichen)
+            if len(self.game.player_name) < 10 and event.unicode.isprintable():
+                self.game.player_name += event.unicode
 
     def mouse_events(self, event):
         if event.button == 1:

@@ -66,9 +66,7 @@ class ScoreManager:
         if best_row:
             return (
                 f"{best_row['score']}"
-                 f" [{best_row['players']} "
-                 f"- {best_row['time']} "
-                 f"- {best_row['mode']}]"
+                 f" [{best_row['players']}]"
             )
 
         return None

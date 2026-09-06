@@ -43,6 +43,7 @@ class Game:
         self.sub_menu = False
         self.menu_state = 'main_menu'
         self.current_turn = 'player1'
+        self.player_name = 'PLAYER1'
         self.pc_timer = 0
         self.game_over = False
         self.score_saved = False
@@ -184,7 +185,7 @@ class Game:
             self.game_over = True
             if not self.score_saved:
                 time_str = self.menu_manager.end_timer()
-                self.score_manager.save_score(self.get_remaining_cards(), 'Simon', self.selected_mode, time_str)
+                self.score_manager.save_score(self.get_remaining_cards(), self.player_name, self.selected_mode, time_str)
                 self.score_saved = True
 
     def refill_pc_hand(self): # maybe change for can just draw a card if already put 2 on piles

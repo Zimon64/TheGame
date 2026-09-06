@@ -28,7 +28,6 @@ class Button():
         button_objects.append(self)
 
     def draw(self, screen):
-        """Reines Zeichnen des Buttons - KEINE Klick-Logik hier!"""
         if not self.visible:
             return
 
@@ -52,7 +51,6 @@ class Button():
         screen.blit(self.buttonSurface, self.buttonRect)
 
     def check_event(self, event):
-        """Wird NUR bei einem echten MOUSEBUTTONDOWN Event aufgerufen"""
         if not self.visible:
             return False
 
