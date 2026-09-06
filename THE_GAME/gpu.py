@@ -1,5 +1,4 @@
 import numpy as np
-
 from settings import FIRST_HAND_POS_X, HAND_UPPER_PLAYER_POS_Y, CARD_WIDTH
 
 class GPU:
@@ -7,10 +6,10 @@ class GPU:
         self.game = game
         self.matrix = []
         self.opt_moves_calc = False
+        self.planed_moves = []
 
     def simple_move(self):
         pc_cards = self.game.player_2_hand_cards
-        print(len(pc_cards))
 
         if not self.opt_moves_calc:
             self.planed_moves = self.automated_smartest_move_light(pc_cards, self.game.piles.get_all_piles())
@@ -18,81 +17,81 @@ class GPU:
 
         if self.planed_moves:
             next_move = self.planed_moves.pop(0)
-
             card = next_move['card_obj']
-            pile = next_move['pile_obj']
-            top_card = pile.sprites()[0]
+            pile_group = next_move['pile_obj']
 
-            self.execute_move(card, top_card, pile)
+            # Nimmt die aktuellste Karte des Stapels als Ziel
+            top_card = pile_group.sprites()[-1] if len(pile_group.sprites()) > 0 else list(pile_group)[0]
+
+            self.execute_move(card, top_card, pile_group)
+            print(f"current laid card: {card.value}")
             return True
 
         return False
 
     def automated_smartest_move_light(self, pc_cards, pile_sets):
-        valid_moves = []
-        special_moves = []
         final_two_moves = []
-
         used_card_indices = set()
+        cards_list = list(pc_cards)
 
-        num_cards = len(pc_cards)
-        num_piles = len(pile_sets)
+        # Aktuelle Werte der 4 Stapel ermitteln
+        current_pile_values = [p.sprites()[-1].value for p in pile_sets]
 
-        self.matrix = np.zeros((num_cards, num_piles))
-        matrix_abs = self.matrix.copy()
+        for move_num in range(2): # Maximal 2 Züge planen
+            best_move = None
+            best_score = float('inf')
 
-        for row, card in enumerate(pc_cards):
-            for col, pile in enumerate(pile_sets):
-                pile_card_value = pile.sprites()[0].value
-                distance = card.value - pile_card_value
+            for row, card in enumerate(cards_list):
+                if row in used_card_indices:
+                    continue
 
-                self.matrix[row, col] = distance
-                matrix_abs[row, col] = abs(distance)
+                for col, pile in enumerate(pile_sets):
+                    top_val = current_pile_values[col]
+                    pos_val = card.value - top_val
+                    abs_val = abs(pos_val)
 
-        print(self.matrix.shape)
+                    is_special = False
+                    is_valid = False
 
-        for row in range(num_cards):
-            for col in range(num_piles):
-                pos_val = self.matrix[row, col]
-                abs_val = matrix_abs[row, col]
+                    # Stapel 0 & 1: 100er (Abwärts)
+                    if col in (0, 1):
+                        if pos_val == 10:
+                            is_special = True
+                        elif pos_val < 0:
+                            is_valid = True
 
-                if (col in (0, 1) and pos_val == +10) or (col in (2, 3) and pos_val == -10):
-                    special_moves.append({
-                        'abs_dist': abs_val,
-                        'card_idx': row,
-                        'pile_idx': col,
-                        'card_obj': list(pc_cards)[row],
-                        'pile_obj': pile_sets[col]
-                    })
-                if (col in (0, 1) and pos_val < 0) or (col in (2, 3) and pos_val > 0):
-                    valid_moves.append({
-                        'abs_dist': abs_val,
-                        'card_idx': row,
-                        'pile_idx': col,
-                        'card_obj': list(pc_cards)[row],
-                        'pile_obj': pile_sets[col]
-                    })
+                    # Stapel 2 & 3: 1er (Aufwärts)
+                    elif col in (2, 3):
+                        if pos_val == -10:
+                            is_special = True
+                        elif pos_val > 0:
+                            is_valid = True
 
-        # special_moves.sort(key=lambda move: move['abs_dist'])
-        valid_moves.sort(key=lambda move: move['abs_dist'])
+                    if is_special or is_valid:
+                        # Priorisiere Sonderzüge extrem hoch (-1000 Abstand)
+                        score = -1000 if is_special else abs_val
 
-        for move in valid_moves:
-            for special_move in special_moves:
-                if special_move['card_idx'] not in used_card_indices:
-                    final_two_moves.append(special_move)
-                    used_card_indices.add(special_move['card_idx'])
-            if move['card_idx'] not in used_card_indices:
-                final_two_moves.append(move)
-                used_card_indices.add(move['card_idx'])
+                        if score < best_score:
+                            best_score = score
+                            best_move = {
+                                'abs_dist': abs_val,
+                                'card_idx': row,
+                                'pile_idx': col,
+                                'card_obj': card,
+                                'pile_obj': pile
+                            }
 
-            if len(final_two_moves) == 2:
+            if best_move:
+                final_two_moves.append(best_move)
+                used_card_indices.add(best_move['card_idx'])
+                # Aktualisiere den virtuellen Stapelwert für die 2. Kartenberechnung!
+                current_pile_values[best_move['pile_idx']] = best_move['card_obj'].value
+            else:
                 break
 
         print(f"Gefundene Züge für den PC: {len(final_two_moves)}")
         for m in final_two_moves:
-            print(f"-> Karte Index {m['card_idx']} auf Stapel {m['pile_idx']} (Abstand: {m['abs_dist']})")
-
-        self.opt_moves_calc = True
+            print(f"-> Karte Index {m['card_idx']} auf Stapel {m['pile_idx']} (Abstand: {m['abs_dist']}) \nKartenwert: {m['card_obj'].value}")
 
         return final_two_moves
 
@@ -102,7 +101,6 @@ class GPU:
 
     def move_remaining_cards(self, cards_to_sort, y_pos=HAND_UPPER_PLAYER_POS_Y):
         x_pos = FIRST_HAND_POS_X
-
         for card in cards_to_sort:
             card.x = x_pos
             card.move_to(x_pos, y_pos)

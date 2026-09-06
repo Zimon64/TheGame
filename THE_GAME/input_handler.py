@@ -33,6 +33,9 @@ class InputHandler:
 
             # --- TASTATUR-EVENTS ---
             elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_TAB:
+                    self.game.menu_manager.scoring_list()
+
                 if getattr(self.game, 'show_scoring_list', False):
                     if event.key == pygame.K_ESCAPE:
                         self.game.show_scoring_list = False
@@ -76,7 +79,8 @@ class InputHandler:
         mouse_pos = event.pos
         card_clicked = self.check_selection(mouse_pos)
 
-        if len(self.game.cards_in_hand) == 0 and self.game.get_remaining_cards() == 0 and len(self.game.player_2_cards_in_hand) == 0:
+        if len(self.game.cards_in_hand) == 0 and self.game.get_remaining_cards() == 0 and len(
+                self.game.player_2_cards_in_hand) == 0:
             print('no cards left\n\n ---GAME WON!!!--- \n\n')
             return
 
@@ -90,9 +94,16 @@ class InputHandler:
                     print('not enough cards laid out yet...')
 
             elif self.game.selected_card:
+                # Durchlaufe alle 4 Stapel
                 for pile in self.game.piles.get_all_piles():
-                    for card in pile:
-                        self.game.stapels_logic(card, pile, mouse_pos)
+                    if len(pile) > 0:
+                        # Nimm das neueste/oberste Sprite auf dem Stapel
+                        top_card = pile.sprites()[-1]
+
+                        # Prüfe, ob genau auf diese oberste Karte geklickt wurde
+                        if top_card.rect.collidepoint(mouse_pos):
+                            self.game.stapels_logic(top_card, pile, mouse_pos)
+                            break
 
     def card_drawing(self, cards_in_hand,  mouse_pos,
                      max_cards_hand=MAX_CARDS_IN_HAND, max_cards_hand_easy=MAX_CARDS_IN_HAND_FOR_REFILL_EASY):
