@@ -136,7 +136,7 @@ class UIManager(object):
         # Position explizit bestimmen
         if is_in_menu:
             scoring_btn_x = 450
-            scoring_btn_y = 625
+            scoring_btn_y = 525
         else:
             scoring_btn_x = WIDTH - 300
             scoring_btn_y = 0
@@ -226,25 +226,25 @@ class MenuManager:
 
         # main menu
         Button(
-            500, 250, 200, 50,
+            500, 150, 200, 50,
             'online',
             self.open_online_menu,
             True
         )
         Button(
-            450, 375, 300, 50,
+            450, 275, 300, 50,
             'play with PC',
             self.start_with_pc,
             True
         )
         Button(
-            450, 500, 300, 50,
+            450, 400, 300, 50,
             'Change Name',
             self.change_name,
             True
         )
         Button(
-            450, 625, 300, 50,
+            450, 525, 300, 50,
             'Scoring List',
             self.scoring_list,
             True

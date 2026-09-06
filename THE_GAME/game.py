@@ -1,9 +1,8 @@
 import pygame
 
 from settings import (
-    WIDTH, HEIGHT, GREEN, RED, WHITE,
-    FONT,
-    FIRST_HAND_POS_X, MAX_CARDS_IN_HAND, HAND_UPPER_PLAYER_POS_Y,
+    WIDTH, HEIGHT,
+    FIRST_HAND_POS_X, MAX_CARDS_IN_HAND, HAND_UPPER_PLAYER_POS_Y, MAX_CARDS_IN_HAND_FOR_REFILL_EASY,
     BOT_TIMER,
 )
 from card import Card
@@ -167,9 +166,13 @@ class Game:
                 print(f'wrong move on pile {pile_card.name}. \ncurrent card {top_val}')
                 self.check_possible_moves()
 
-    def check_possible_moves(self):
+    def check_possible_moves(self, hand=None):
+        # Falls keine Hand übergeben wurde, nimm die Hand des Spielers
+        if hand is None:
+            hand = self.hand_cards
+
         valid = False
-        for card in self.hand_cards:
+        for card in hand:
             for pile in self.piles.get_all_piles():
                 if len(pile) == 0:
                     continue
@@ -187,6 +190,9 @@ class Game:
                 time_str = self.menu_manager.end_timer()
                 self.score_manager.save_score(self.get_remaining_cards(), self.player_name, self.selected_mode, time_str)
                 self.score_saved = True
+            return False
+
+        return True
 
     def refill_pc_hand(self): # maybe change for can just draw a card if already put 2 on piles
         while len(self.player_2_cards_in_hand) < MAX_CARDS_IN_HAND and len(self.deck) > 0:
@@ -225,12 +231,23 @@ class Game:
 
                 if not move_made:
                     print('pc is done with his moves...')
+
+                    has_moves = self.check_possible_moves(self.player_2_hand_cards)
+                    hand_too_full = len(self.player_2_cards_in_hand) > MAX_CARDS_IN_HAND_FOR_REFILL_EASY
+
+                    if not has_moves or hand_too_full:
+                        print('PC has no valid moves left or did not lay out enough cards...')
+                        self.game_over = True
+                        return
+
                     self.refill_pc_hand()
                     self.gpu.opt_moves_calc = False
+
+                    if not self.check_possible_moves(self.hand_cards):
+                        print('Player has no valid moves left. \n\n ---GAME OVER--- \n\n')
+                        return
+
                     self.current_turn = 'player1'
-                else:
-                    # check if player has no more moves left
-                    return
 
     def run(self):
         while self.running:
