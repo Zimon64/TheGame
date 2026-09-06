@@ -171,6 +171,9 @@ class Game:
         if hand is None:
             hand = self.hand_cards
 
+        if len(hand) == 0 or self.menu_state == 'main_menu':
+            return True
+
         valid = False
         for card in hand:
             for pile in self.piles.get_all_piles():

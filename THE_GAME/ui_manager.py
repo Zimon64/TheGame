@@ -275,6 +275,8 @@ class MenuManager:
     def reset_button(self):
         self.game.reset_game()
         self.game.menu_state ='main_menu'
+        self.game.with_pc = False
+        self.game.game_over = False
         self.game.new_game_mode()
 
     def back_to_main_menu(self):
