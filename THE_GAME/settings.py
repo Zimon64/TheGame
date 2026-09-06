@@ -31,3 +31,6 @@ FONT =  pygame.font.SysFont('Cambria', 40)
 
 # bot
 BOT_TIMER = 600
+
+# scoring table
+SCORING_TABLE_X = 100

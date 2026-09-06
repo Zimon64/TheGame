@@ -1,6 +1,6 @@
 import pygame
 
-from settings import MAX_CARDS_IN_HAND, MAX_CARDS_IN_HAND_FOR_REFILL_EASY
+from settings import MAX_CARDS_IN_HAND, MAX_CARDS_IN_HAND_FOR_REFILL_EASY, HEIGHT
 from button import button_objects
 
 class InputHandler:
@@ -11,8 +11,24 @@ class InputHandler:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.game.running = False
+
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                self.mouse_events(event)
+                if getattr(self.game, 'show_scoring_list', False):
+                    if event.button == 4:
+                        self.game.ui_manager.scroll_y = min(0, self.game.ui_manager.scroll_y + 35)
+                    elif event.button == 5:
+                        all_scores = self.game.score_manager.get_all_scores()
+                        max_scroll = -max(0, len(all_scores) * 35 - (HEIGHT - 200))
+                        self.game.ui_manager.scroll_y = max(max_scroll, self.game.ui_manager.scroll_y - 35)
+                    elif event.button == 1:
+                        self.check_menu_buttons(button_objects, event)
+
+                else:
+                    self.mouse_events(event)
+
+            elif event.type == pygame.KEYDOWN and getattr(self.game, 'show_scoring_list', False):
+                if event.key == pygame.K_ESCAPE:
+                    self.game.show_scoring_list = False
 
     def mouse_events(self, event):
         if event.button == 1:

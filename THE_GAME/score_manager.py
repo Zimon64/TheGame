@@ -14,6 +14,26 @@ class ScoreManager:
                 writer = csv.writer(f)
                 writer.writerow(['date', 'score', 'players', 'mode', 'time'])
 
+    def get_all_scores(self):
+        self._ensure_file_exists()  # Stellt sicher, dass die Datei da ist
+        scores = []
+
+        with open(self.filename, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    row['score_val'] = int(row['score'])
+                    row['time_ms'] = self.time_to_ms(row['time'])
+                    scores.append(row)
+                except (ValueError, KeyError):
+                    continue
+
+            # Sortiert primär nach 'score_val' (aufsteigend)
+            # und sekundär nach 'time_ms' (aufsteigend)
+        scores.sort(key=lambda x: (x['score_val'], x['time_ms']))
+
+        return scores
+
     def save_score(self, score, player, mode, elapsed_time):
         date_str = datetime.now().strftime('%Y-%m-%d, %H:%M:%S')
         with open(self.filename, mode='a', newline='', encoding='utf-8') as f:
@@ -44,7 +64,12 @@ class ScoreManager:
                     continue
 
         if best_row:
-            return f"{best_row['score']} [{best_row['players']} - time: {best_row['time']} - mode: {best_row['mode']}]"
+            return (
+                f"{best_row['score']}"
+                 f" [{best_row['players']} "
+                 f"- {best_row['time']} "
+                 f"- {best_row['mode']}]"
+            )
 
         return None
 

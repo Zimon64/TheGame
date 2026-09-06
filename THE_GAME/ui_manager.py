@@ -2,7 +2,7 @@ import pygame
 
 from time import time
 
-from settings import WIDTH, HEIGHT, GREEN, RED, WHITE, FONT
+from settings import WIDTH, HEIGHT, GREEN, RED, WHITE, FONT, GRAY, SCORING_TABLE_X
 from button import button_objects, Button
 
 class UIManager(object):
@@ -10,6 +10,7 @@ class UIManager(object):
         self.game = game
         self.screen = screen
         self.score_manager = score_manager
+        self.scroll_y = 0
 
     def draw_game_over(self, score: int):
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -65,6 +66,43 @@ class UIManager(object):
                 button.visible = button.buttonText in ['Host Game', 'Join Game', 'Back']
                 button.draw(self.screen)
 
+    def draw_scoring_list_overlay(self):
+        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 220))  # Dunkler transparenter Hintergrund
+
+        title_surf = FONT.render('ALL SCORES', True, WHITE)
+        overlay.blit(title_surf, title_surf.get_rect(center=(WIDTH // 2, 80)))
+
+        header_surf = FONT.render('Player       Mode       Score       Time          Date', True, RED)
+        overlay.blit(header_surf, (SCORING_TABLE_X, 100))
+
+        all_scores = self.score_manager.get_all_scores() if hasattr(self.score_manager, 'get_all_scores') else []
+
+        list_rect = pygame.Rect(0, 120, WIDTH, HEIGHT -180)
+        overlay.set_clip(list_rect)
+
+        y_offset = 130 + self.scroll_y
+        for entry in all_scores:
+            if 120 <= y_offset <= HEIGHT - 70:
+                name = entry.get('players', 'P1')
+                mode = entry.get('mode', '-')
+                score = entry.get('score', 0)
+                time_str = entry.get('time', '--:--')
+                date_str = entry.get('date', 'aaaa:mm:dd, hh:mm:ss')
+
+                line_str = f"{name:<12} {mode:<10} {score:<11} {time_str:<10} {date_str}"
+                txt_surf = FONT.render(line_str, True, WHITE)
+                overlay.blit(txt_surf, (SCORING_TABLE_X, y_offset))
+
+            y_offset += 35
+
+        overlay.set_clip(None)
+
+        close_surf = FONT.render('Click "Scoring List" or press ESC to close', True, GRAY)
+        overlay.blit(close_surf, close_surf.get_rect(center=(WIDTH // 2, HEIGHT - 30)))
+
+        self.screen.blit(overlay, (0, 0))
+
     def draw(self):
         is_in_menu = self.game.sub_menu or self.game.menu_state in ['main_menu', 'online_menu']
 
@@ -98,6 +136,9 @@ class UIManager(object):
         if self.game.game_over:
             self.draw_game_over(self.game.get_remaining_cards())
 
+        if getattr(self.game, 'show_scoring_list', False):
+            self.draw_scoring_list_overlay()
+
         pygame.display.flip()
 
 
@@ -115,6 +156,11 @@ class MenuManager:
                     button.rect.x = x
                     button.rect.y = y
                     button.rect.topleft = (x, y)
+
+    def scoring_list(self):
+        # Toggle den Anzeigen-Zustand (True/False)
+        current_state = getattr(self.game, 'show_scoring_list', False)
+        self.game.show_scoring_list = not current_state
 
     def get_buttons(self):
         # table
@@ -230,7 +276,7 @@ class MenuManager:
         self.game.current_turn = 'player1'
 
     def scoring_list(self):
-        return
+        self.game.show_scoring_list = not getattr(self.game, 'show_scoring_list', False)
 
     def start_timer(self):
         self.starting_time = time()
