@@ -2,57 +2,35 @@ name: Build Executables for All OS
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.10'
 
-    - name: Install Dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pygame pandas numpy pyinstaller
+        pip install pygame pyinstaller
 
-    - name: Build Executable (Linux / macOS)
-      if: runner.os != 'Windows'
+    - name: Build with PyInstaller (Linux / macOS)
+      if: matrix.os != 'windows-latest'
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards:cards" THE_GAME/main.py
+        pyinstaller --onefile --noconsole --add-data "cards:cards" --add-data "assets:assets" main.py
 
-    - name: Build Executable (Windows)
-      if: runner.os == 'Windows'
+    - name: Build with PyInstaller (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards;cards" THE_GAME/main.py
-
-    # ZIP-Archiv für Linux / macOS erstellen (erhält Dateirechte)
-    - name: Zip Output (Linux / macOS)
-      if: runner.os != 'Windows'
-      run: |
-        cd dist
-        zip -r ../game-${{ matrix.os }}.zip *
-
-    # ZIP-Archiv für Windows erstellen
-    - name: Zip Output (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        Compress-Archive -Path dist/* -DestinationPath game-${{ matrix.os }}.zip
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: game-${{ matrix.os }}
-        path: game-${{ matrix.os }}.zip
+        pyinstaller --onefile --noconsole --add-data "cards;cards" --add-data "assets;assets" main.py
