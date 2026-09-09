@@ -37,8 +37,22 @@ jobs:
       run: |
         pyinstaller --noconfirm --onedir --windowed --add-data "THE_GAME/cards;cards" THE_GAME/main.py
 
+    # ZIP-Archiv für Linux / macOS erstellen (erhält Dateirechte)
+    - name: Zip Output (Linux / macOS)
+      if: runner.os != 'Windows'
+      run: |
+        cd dist
+        zip -r ../game-${{ matrix.os }}.zip *
+
+    # ZIP-Archiv für Windows erstellen
+    - name: Zip Output (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Compress-Archive -Path dist/* -DestinationPath game-${{ matrix.os }}.zip
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: game-${{ matrix.os }}
-        path: dist/
+        path: game-${{ matrix.os }}.zip
