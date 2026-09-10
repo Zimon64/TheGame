@@ -1,25 +1,23 @@
 # THE GAME
-## Structure
+
+A digital implementation of the cooperative card game "The Game" featuring a single-player mode against an AI bot and optional online multiplayer features.
+
+## Project Structure
+
 ```text
 GameIdeas/
-├── .github/
-│   └── workflows/
-│       └── build.yml
-│
-├── cards/                   # Directory for image files
-├── stats.csv                # Highscore file
-│
-├── main.py                  # Entry point: initializes and runs the game
-├── game.py                  # Main game class: game loop, event routing, state management
-├── game_logic.py            # Game domain logic (Deck, PileGroup, move rules)
-├── ui_manager.py            # HUD, rendering overlays, layout management
-├── input_manager.py         # Event handling (mouse & keyboard input)
-├── gpu.py                   # BOT decision-making logic
-├── score_manager.py         # ScoreManager class (CSV file access)
-├── card.py                  # Card sprite class (visuals & card attributes)
-├── button.py                # Interactive UI button class
-├── card.py                  # Card sprites (generation & attributes)
-├── settings.py              # global constants (color, window sizes, paths)
+├── .github/workflows/build.yml
+├── cards/                   # Directory for card image files
+├── src/                     # Source code module
+│   ├── bot.py               # BOT opponent logic
+│   ├── logic.py             # Game rules, turn flow & deck management
+│   ├── models.py            # Card sprite (graphics & attributes)
+│   └── ui.py                # User interface, menus & input handling
+├── main.py                  # Main entry point (initializes and runs the game)
+├── settings.py              # Global constants (colors, window sizes, paths)
+├── online.py                # Network & multiplayer logic
+├── score_manager.py         # Highscore management (CSV-based)
+└── stats.csv                # Saved game scores and stats
 ```
 ## Playing Rules
 
@@ -35,3 +33,6 @@ If you play all 98 cards, you win!
 
 If `you get good`, the rules suggest that you `play at least three cards a turn` to increase the challenge.
 
+## Future Plans
+
+`online mode, fire cards, different difficulties`

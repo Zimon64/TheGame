@@ -10,7 +10,7 @@ class Online:
         self.debug = debug
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.is_host = False
-        self.player_id = None # 1 or 2 for now :)
+        self.player_id = None # 1 or 2 for now
         self.connected = False
         self.socket.bind((self.host, self.port))
 

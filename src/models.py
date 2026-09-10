@@ -12,10 +12,8 @@ class Card(pygame.sprite.Sprite):
         self.target_y = float(y)
         self.speed = 15
 
-        # Bild laden und auf die richtige Größe skalieren
         image_path = os.path.join(CARDS_DIR, f'{value}.png')
 
-        # Fallback-Oberfläche, falls das Bild fehlt (Fehlervermeidung)
         try:
             raw_image = pygame.image.load(image_path).convert_alpha()
             self.original_image = pygame.transform.scale(raw_image, (CARD_WIDTH, CARD_HEIGHT))
@@ -42,12 +40,9 @@ class Card(pygame.sprite.Sprite):
                 self.y = self.target_y
                 self.rect.topleft = (int(self.x), int(self.y))
 
-                # Wenn ein Stapel-Ziel übergeben wurde: Nach der Ankunft übertragen!
                 if hasattr(self, 'target_pile_card') and self.target_pile_card:
-                    # 1. Wert der Stapelkarte überschreiben
                     self.target_pile_card.value = self.value
 
-                    # 2. Bild der Stapelkarte überschreiben
                     image_path = os.path.join(CARDS_DIR, f'{self.value}.png')
                     try:
                         raw_image = pygame.image.load(image_path).convert_alpha()
@@ -57,7 +52,6 @@ class Card(pygame.sprite.Sprite):
                     except (pygame.error, FileNotFoundError):
                         pass
 
-                # Karte hat ihr Ziel erreicht und wird gelöscht
                 self.kill()
             else:
                 self.x += (dx / distance) * self.speed

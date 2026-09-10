@@ -1,7 +1,6 @@
-import numpy as np
 from settings import FIRST_HAND_POS_X, HAND_UPPER_PLAYER_POS_Y, CARD_WIDTH
 
-class GPU:
+class BOT:
     def __init__(self, game):
         self.game = game
         self.matrix = []
@@ -20,7 +19,6 @@ class GPU:
             card = next_move['card_obj']
             pile_group = next_move['pile_obj']
 
-            # Nimmt die aktuellste Karte des Stapels als Ziel
             top_card = pile_group.sprites()[-1] if len(pile_group.sprites()) > 0 else list(pile_group)[0]
 
             self.execute_move(card, top_card, pile_group)
@@ -34,10 +32,9 @@ class GPU:
         used_card_indices = set()
         cards_list = list(pc_cards)
 
-        # Aktuelle Werte der 4 Stapel ermitteln
         current_pile_values = [p.sprites()[-1].value for p in pile_sets]
 
-        for move_num in range(2): # Maximal 2 Züge planen
+        for move_num in range(2):
             best_move = None
             best_score = float('inf')
 
@@ -53,14 +50,14 @@ class GPU:
                     is_special = False
                     is_valid = False
 
-                    # Stapel 0 & 1: 100er (Abwärts)
+                    # pile 0 & 1: 100er (downwards)
                     if col in (0, 1):
                         if pos_val == 10:
                             is_special = True
                         elif pos_val < 0:
                             is_valid = True
 
-                    # Stapel 2 & 3: 1er (Aufwärts)
+                    # pile 2 & 3: 1er (upwards)
                     elif col in (2, 3):
                         if pos_val == -10:
                             is_special = True
@@ -68,7 +65,6 @@ class GPU:
                             is_valid = True
 
                     if is_special or is_valid:
-                        # Priorisiere Sonderzüge extrem hoch (-1000 Abstand)
                         score = -1000 if is_special else abs_val
 
                         if score < best_score:
@@ -84,14 +80,13 @@ class GPU:
             if best_move:
                 final_two_moves.append(best_move)
                 used_card_indices.add(best_move['card_idx'])
-                # Aktualisiere den virtuellen Stapelwert für die 2. Kartenberechnung!
                 current_pile_values[best_move['pile_idx']] = best_move['card_obj'].value
             else:
                 break
 
-        print(f"Gefundene Züge für den PC: {len(final_two_moves)}")
+        print(f"Found moves for PC: {len(final_two_moves)}")
         for m in final_two_moves:
-            print(f"-> Karte Index {m['card_idx']} auf Stapel {m['pile_idx']} (Abstand: {m['abs_dist']}) \nKartenwert: {m['card_obj'].value}")
+            print(f"-> Card Index {m['card_idx']} on pile {m['pile_idx']} (distance: {m['abs_dist']}) \ncard value: {m['card_obj'].value}")
 
         return final_two_moves
 

@@ -1,18 +1,18 @@
 import pygame
+import random
 
 from settings import (
     WIDTH, HEIGHT,
     FIRST_HAND_POS_X, MAX_CARDS_IN_HAND, HAND_UPPER_PLAYER_POS_Y, MAX_CARDS_IN_HAND_FOR_REFILL_EASY,
     BOT_TIMER,
+    FPS
 )
-from card import Card
-from card_setup import CardSetup
 from score_manager import ScoreManager
-from gpu import GPU
+from .bot import BOT
 from online import Online
-from ui_manager import UIManager, MenuManager
-from game_logic import Rules, Deck, PileGroup
-from input_handler import InputHandler
+
+from src.ui import UIManager, MenuManager, InputHandler
+from src.models import Card
 
 class Game:
     def __init__(self):
@@ -23,18 +23,16 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
-        # Ausgelagerte Manager & Module
         self.card_setup = CardSetup(self)
         self.deck = Deck()
         self.piles = PileGroup(self)
         self.score_manager = ScoreManager()
         self.ui_manager = UIManager(self, self.screen, self.score_manager)
         self.menu_manager = MenuManager(self)
-        self.gpu = GPU(self)
+        self.gpu = BOT(self)
         self.online = Online(self)
         self.input_handler = InputHandler(self)
 
-        # Zustände
         self.selected_card = None
         self.new_game = False
         self.selected_mode = None
@@ -47,7 +45,6 @@ class Game:
         self.game_over = False
         self.score_saved = False
 
-        # Sprite-Gruppen
         self.all_cards = pygame.sprite.Group()
         self.hand_cards = pygame.sprite.Group()
         self.deck_cards = pygame.sprite.Group()
@@ -150,7 +147,7 @@ class Game:
         self.all_cards.add(self.player_2_cards_in_hand)
         self.all_cards.add(self.player_2_back_cards_in_hand)
 
-    def stapels_logic(self, card, pile_card, mouse_pos):
+    def staples_logic(self, card, pile_card, mouse_pos):
         if card.rect.collidepoint(mouse_pos):
             if not isinstance(self.selected_card.value, int):
                 return
@@ -167,7 +164,6 @@ class Game:
                 self.check_possible_moves()
 
     def check_possible_moves(self, hand=None):
-        # Falls keine Hand übergeben wurde, nimm die Hand des Spielers
         if hand is None:
             hand = self.hand_cards
 
@@ -209,7 +205,6 @@ class Game:
 
             # logic card
             new_card = Card(value=new_card_val, x=pos_x, y=HAND_UPPER_PLAYER_POS_Y)
-
             # visuell card
             back_card = Card(value='back', x=pos_x, y=HAND_UPPER_PLAYER_POS_Y)
 
@@ -260,3 +255,130 @@ class Game:
             self.clock.tick(60)
 
         pygame.quit()
+
+
+class Rules:
+    @staticmethod
+    def is_valid_move(pile_name: str, top_val: int, sel_val: int) -> bool:
+        if '100' in pile_name:
+            return (sel_val < top_val) or (sel_val == top_val + 10)
+        return (sel_val > top_val) or (sel_val == top_val - 10)
+
+class Deck:
+    def __init__(self):
+        self.remaining_cards = []
+        self.reset()
+
+    def reset(self):
+        self.remaining_cards = sorted(list(range(2, 100)))
+        # # check for game ending behavior
+        # self.remaining_cards = sorted(list(range(2,16)))
+
+    def draw_card(self):
+        if not self.remaining_cards:
+            return None
+        taken_card = random.choice(self.remaining_cards)
+        self.remaining_cards.remove(taken_card)
+        return taken_card
+
+    def __len__(self):
+        return len(self.remaining_cards)
+
+class PileGroup:
+    def __init__(self, game):
+        self.game = game
+        self.pile_100_left = pygame.sprite.Group()
+        self.pile_100_right = pygame.sprite.Group()
+        self.pile_1_left = pygame.sprite.Group()
+        self.pile_1_right = pygame.sprite.Group()
+
+        self.pile_100_left.name = 'pile_card_100_left'
+        self.pile_100_right.name = 'pile_card_100_right'
+        self.pile_1_left.name = 'pile_card_1_left'
+        self.pile_1_right.name = 'pile_card_1_right'
+
+    def get_all_piles(self):
+        return [
+            self.pile_100_left,
+            self.pile_100_right,
+            self.pile_1_left,
+            self.pile_1_right
+        ]
+
+    def empty_all(self):
+        for pile in self.get_all_piles():
+            pile.empty()
+
+    def move_card_to_pile(self, target_pile_card, target_group):
+        if not self.game.selected_card:
+            return
+
+        # Aus der Hand entfernen
+        if self.game.current_turn == 'player1' or not self.game.with_pc:
+            hand_list = self.game.cards_in_hand
+            hand_group = self.game.hand_cards
+        else:
+            hand_list = self.game.player_2_cards_in_hand
+            hand_group = self.game.player_2_hand_cards
+
+        if self.game.selected_card in hand_list:
+            hand_list.remove(self.game.selected_card)
+            self.game.empty_hand_slot.append(self.game.selected_card.x)
+
+        played_value = self.game.selected_card.value
+
+        hand_group.remove(self.game.selected_card)
+        self.game.selected_card.deselect()
+
+        target_group.add(self.game.selected_card)
+
+        self.game.selected_card.target_pile_card = target_pile_card
+        self.game.selected_card.move_to(target_pile_card.rect.x, target_pile_card.rect.y)
+
+        if self.game.selected_mode == 'online':
+            self.game.online.send_action('MOVED_CARD', {
+                'card_value': played_value,
+                'target_pile': target_group.name
+            })
+
+        self.game.selected_card = None
+
+
+class CardSetup:
+    def __init__(self, game):
+        self.game = game
+
+    def load_starting_cards(self):
+        card_1_right = Card(value=1, x=1000, y=500)
+        card_1_left = Card(value=1, x=100, y=500)
+        card_100_right = Card(value=100, x=1000, y=100)
+        card_100_left = Card(value=100, x=100, y=100)
+        card_deck = Card(value='back', x=550, y=300)
+
+        self.game.piles.pile_100_left.add(card_100_left)
+        self.game.piles.pile_100_right.add(card_100_right)
+        self.game.piles.pile_1_left.add(card_1_left)
+        self.game.piles.pile_1_right.add(card_1_right)
+        self.game.deck_cards.add(card_deck)
+
+        self.game.all_cards.add(card_1_left, card_1_right, card_100_left, card_100_right, card_deck)
+
+    def load_starting_hand(self):
+        self.game.cards_in_hand = []
+        left_card_pos = FIRST_HAND_POS_X
+        distance_to_previous = 100
+
+        while len(self.game.cards_in_hand) < MAX_CARDS_IN_HAND:
+            self.game.card_generator(
+                self.game.cards_in_hand,
+                left_card_pos,
+                self.game.deck.draw_card(),
+                600,
+            )
+            left_card_pos += distance_to_previous
+
+        self.game.empty_hand_slot = []
+
+        self.game.hand_cards.add(self.game.cards_in_hand)
+
+        self.game.all_cards.add(self.game.cards_in_hand)

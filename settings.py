@@ -34,3 +34,5 @@ BOT_TIMER = 600
 
 # scoring table
 SCORING_TABLE_X = 100
+
+FPS = 60

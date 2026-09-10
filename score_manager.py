@@ -15,7 +15,7 @@ class ScoreManager:
                 writer.writerow(['date', 'score', 'players', 'mode', 'time'])
 
     def get_all_scores(self):
-        self._ensure_file_exists()  # Stellt sicher, dass die Datei da ist
+        self._ensure_file_exists()
         scores = []
 
         with open(self.filename, mode='r', encoding='utf-8') as f:
@@ -28,8 +28,6 @@ class ScoreManager:
                 except (ValueError, KeyError):
                     continue
 
-            # Sortiert primär nach 'score_val' (aufsteigend)
-            # und sekundär nach 'time_ms' (aufsteigend)
         scores.sort(key=lambda x: (x['score_val'], x['time_ms']))
 
         return scores
