@@ -43,8 +43,7 @@ class UIManager(object):
             self.screen.blit(overlay, (0, 0))
 
             for button in self.game.menu_manager.buttons:
-                # button.visible = button.buttonText in ['online', 'play with PC', 'Change Name', 'Scoring List']
-                button.visible = button.buttonText in ['play with PC', 'Change Name', 'Scoring List']
+                button.visible = button.buttonText in ['online', 'play with PC', 'Change Name', 'Scoring List']
                 button.draw(self.screen)
 
         elif menu_state == 'online_menu':
@@ -61,7 +60,6 @@ class UIManager(object):
             self.screen.blit(overlay, (0, 0))
 
             for button in self.game.menu_manager.buttons:
-                # button.visible = button.buttonText in ['online', 'play with PC', 'Change Name', 'Scoring List']
                 button.visible = button.buttonText in ['play with PC', 'Change Name', 'Scoring List']
                 button.draw(self.screen)
 
