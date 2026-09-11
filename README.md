@@ -2,11 +2,14 @@
 
 A digital implementation of the cooperative card game "The Game" featuring a single-player mode against an AI bot and optional online multiplayer features.
 
+![Table of the Game](screenshots/start_table.png)
+
 ## Project Structure
 
 ```text
 GameIdeas/
 ├── .github/workflows/build.yml
+├── screenshots/             # Directory for screenshot images of THE GAME
 ├── cards/                   # Directory for card image files
 ├── src/                     # Source code module
 │   ├── bot.py               # BOT opponent logic
@@ -25,13 +28,30 @@ Players in The Game try to `discard all 98 cards` in the deck onto four discard 
 
 Each player `starts with 6` cards in their hand depending on the number of players, and four discard pile prompt cards are on the table: `two showing 1` and an up arrow and `two showing 100` and a down arrow. `On a turn`, a player must `discard at least two cards from their hand` onto one or more discard piles, with cards `on the 1 piles being placed in ascending` order and cards `on the 100 piles being placed in descending` order. One tricky aspect of the game is that you `can play a card exactly 10 higher/lower than the top card` of a discard pile even when you would normally have to play in a descending/ascending order, e.g., if a 100 discard pile is topped with an 87, you can play any card lower than 87 or you can play the 97.
 
+### Special Move Showcase
+
+<video width="100%" autoplay loop muted playsinline>
+  <source src="screenshots/special_move.mp4" type="video/mp4">
+  Dein Browser unterstützt kein Video.
+</video>
+
 After a player finishes their turn, they refill their hand from the deck. During play, `players cannot reveal exact numbers` in their hands, `but` they can `warn others not to play on certain discard piles or otherwise make play suggestions`.
+
+If someone can not lay at least two cards on any piles, you loose and the game is over!
+
+![Game Over](screenshots/game_over.png)
 
 Once the `deck is emptied`, players are required `only to play at least one card on a turn`. 
 
 If you play all 98 cards, you win!
 
 If `you get good`, the rules suggest that you `play at least three cards a turn` to increase the challenge.
+
+## Fetchers
+- **Player Name:** change your player name in the main menu
+![Main Menu Button - change name for having a personal name in the score board](screenshots/change_name.png)
+- **Scoreboard:** see who has the highest score with playtime (mm:ss:ms) and at which date (with the current time, the game was played)
+![Scoreboard - overview of all games played with statistics](screenshots/score_board.png)
 
 ## Future Plans
 
