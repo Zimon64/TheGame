@@ -9,8 +9,8 @@ A digital implementation of the cooperative card game "The Game" featuring a sin
 ```text
 GameIdeas/
 ├── .github/workflows/build.yml
-├── screenshots/             # Directory for screenshot images of THE GAME
-├── cards/                   # Directory for card image files
+├── screenshots/             # Folder for screenshot images of THE GAME
+├── cards/                   # Folder for card image files
 ├── src/                     # Source code module
 │   ├── bot.py               # BOT opponent logic
 │   ├── logic.py             # Game rules, turn flow & deck management
